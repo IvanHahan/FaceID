@@ -16,13 +16,14 @@ UPLOAD_DIR = os.path.join(STATIC_DIR, UPLOAD_FOLDER)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
-swagger = Swagger(app)
-liveness_detector = LivenessDetector.load_from_checkpoint('models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model/artifacts/swa.ckpt')
-face_identifier = LiveFaceIdentifier('data/known_faces', liveness_detector)
-
 conf_object = os.path.join('config.{}'.format('Debug'))
 app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lf,'
+
+swagger = Swagger(app)
+liveness_detector = mlflow.pyfunc.load_model('models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model')
+face_identifier = LiveFaceIdentifier('data/16.11.20/', liveness_detector)
+
 
 
 class Error(Exception):

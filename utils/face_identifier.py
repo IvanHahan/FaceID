@@ -35,8 +35,10 @@ class FaceIdentifier:
         self._known_face_encodings = []
         for path in glob(join(known_faces_dir, '*/*.png')):
             image = face_recognition.load_image_file(path)
-            encoding = face_recognition.face_encodings(image)[0]
-            self._known_face_encodings.append(encoding)
+            encodings = face_recognition.face_encodings(image)
+            if len(encodings) == 0:
+                continue
+            self._known_face_encodings.append(encodings[0])
             self._known_face_names.append(os.path.basename(os.path.dirname(path)))
 
     def identify(self, image):
