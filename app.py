@@ -8,6 +8,7 @@ import cv2
 import mlflow
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
+from liveness_detection.liveness_detector import LivenessDetector
 
 STATIC_DIR = 'static'
 UPLOAD_FOLDER = 'img'
@@ -16,10 +17,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
 swagger = Swagger(app)
-liveness_detector = mlflow.pytorch.load_model('model/swa')
+liveness_detector = LivenessDetector.load_from_checkpoint('models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model/artifacts/swa.ckpt')
 face_identifier = LiveFaceIdentifier('data/known_faces', liveness_detector)
 
-conf_object = os.path.join('app.config.{}'.format('Default'))
+conf_object = os.path.join('config.{}'.format('Debug'))
 app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lf,'
 
@@ -54,8 +55,8 @@ def handle_key_error(error):
     return response
 
 
-@app.route('/identify_face', methods=['Post'])
-def identify_face():
+@app.route('/face_id', methods=['Post'])
+def face_id():
     images = []
     for f in request.files.values():
         path = os.path.join(UPLOAD_DIR, f.filename)
@@ -65,5 +66,8 @@ def identify_face():
     result = face_identifier.identify(images)
     return jsonify(result)
 
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001)
 
 

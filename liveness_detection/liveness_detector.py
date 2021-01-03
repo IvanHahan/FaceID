@@ -250,7 +250,7 @@ if __name__ == '__main__':
     parser.add_argument('--progress_bar_refresh_rate', type=int, default=20)
     parser.add_argument('--default_root_dir', default=os.path.dirname(os.getcwd()), help='pytorch-lightning log path')
 
-    parser.add_argument('--map_location', default='cpu')
+    parser.add_argument('--map_location', default='cuda')
 
     parser = LivenessDetector.add_model_specific_args(parser)
 
