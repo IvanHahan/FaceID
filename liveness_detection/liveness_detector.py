@@ -11,9 +11,6 @@ from PIL import Image
 from pytorch_lightning.metrics.functional import accuracy, f1 as f1_score, fbeta
 from torch import nn
 from torch.utils.data import DataLoader
-from pytorch_lightning.callbacks import ModelCheckpoint
-from torchvision import models
-
 from liveness_detection.config import CONDA_ENV
 
 MODEL_STATE = 'model_state'
@@ -38,12 +35,16 @@ class LivenessDetector(pl.LightningModule):
         self.series_len = kwargs.get('channels', 5)
 
         from efficientnet_pytorch import EfficientNet
-        self.backbone = EfficientNet.from_pretrained(kwargs.get('network', 'efficientnet-b0'),
-                                                     num_classes=1,
-                                                     in_channels=self.series_len)
-        # self.backbone = models.resnet18(True)
-        # self.backbone.fc = nn.Linear(512, 1)
-        # self.backbone.conv1 = nn.Conv2d(self.series_len, 64, 7, 2, bias=False)
+        if kwargs.get('pretrained', False):
+            self.backbone = EfficientNet.from_pretrained(kwargs.get('network', 'efficientnet-b0'),
+                                                         num_classes=1,
+                                                         in_channels=self.series_len)
+        else:
+            from efficientnet_pytorch.model import get_same_padding_conv2d, round_filters
+            self.backbone = EfficientNet.from_name('efficientnet-b0', override_params={'num_classes': 1})
+            Conv2d = get_same_padding_conv2d(image_size=model._global_params.image_size)
+            out_channels = round_filters(32, model._global_params)
+            model._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
 
         self.swa_model = torch.optim.swa_utils.AveragedModel(self.backbone)
 
@@ -190,6 +191,15 @@ class LivenessDetector(pl.LightningModule):
         parser.add_argument('--ts', help='train spoofed file path', default='../data/train_spoofed.txt')
         parser.add_argument('--vs', help='val spoofed file path', default='../data/test_spoofed.txt')
         return parser
+
+    @staticmethod
+    def preprocess(images):
+        from liveness_detection.augmentation import Preprocessor
+        processor = Preprocessor()
+        images = [processor(x).unsqueeze(0) for x in images]
+
+        input = torch.cat(images, dim=0)
+        return input
 
 
 class LivenessDetectorWrapper(mlflow.pyfunc.PythonModel):

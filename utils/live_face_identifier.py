@@ -19,7 +19,7 @@ class LiveFaceIdentifier(FaceIdentifier):
             if len(faces) >= 5:
                 faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
                 locs, frames = zip(*faces)
-                frames = np.array([pad_image(resize_image(f, 128), (128, 128))[0] for f in frames], dtype='uint8')
-                result = self.liveness_detector.predict(frames)[0] > 0.95
-                cache[name] = result
+                input = self.liveness_detector.preprocess(frames)
+                result = self.liveness_detector(input)[0] > 0.95
+                cache[name] = bool(result.detach().cpu().numpy())
         return cache
