@@ -306,3 +306,4 @@ ipython_config.py
 /mlruns/
 /models/
 /data/
+/static/
