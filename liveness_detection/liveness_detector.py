@@ -42,9 +42,9 @@ class LivenessDetector(pl.LightningModule):
         else:
             from efficientnet_pytorch.model import get_same_padding_conv2d, round_filters
             self.backbone = EfficientNet.from_name('efficientnet-b0', override_params={'num_classes': 1})
-            Conv2d = get_same_padding_conv2d(image_size=model._global_params.image_size)
-            out_channels = round_filters(32, model._global_params)
-            model._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
+            Conv2d = get_same_padding_conv2d(image_size=self.backbone._global_params.image_size)
+            out_channels = round_filters(32, self.backbone._global_params)
+            self.backbone._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
 
         self.swa_model = torch.optim.swa_utils.AveragedModel(self.backbone)
 
@@ -196,10 +196,8 @@ class LivenessDetector(pl.LightningModule):
     def preprocess(images):
         from liveness_detection.augmentation import Preprocessor
         processor = Preprocessor()
-        images = [processor(x).unsqueeze(0) for x in images]
-
-        input = torch.cat(images, dim=0)
-        return input
+        images = processor(images).unsqueeze(0)
+        return images
 
 
 class LivenessDetectorWrapper(mlflow.pyfunc.PythonModel):
@@ -281,5 +279,5 @@ if __name__ == '__main__':
 
         swa_path = '../models/swa.ckpt'
         trainer.save_checkpoint(swa_path)
-        LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='swa', use_swa=True)
-        LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='model', use_swa=False)
+        # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='swa', use_swa=True)
+        # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='model', use_swa=False)

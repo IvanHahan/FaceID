@@ -21,7 +21,7 @@ app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lf,'
 
 swagger = Swagger(app)
-liveness_detector = mlflow.pyfunc.load_model('models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model')
+liveness_detector = LivenessDetector.load_from_checkpoint('models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model/artifacts/swa.ckpt')
 face_identifier = LiveFaceIdentifier('data/16.11.20/', liveness_detector)
 
 

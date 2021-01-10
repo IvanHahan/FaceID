@@ -15,11 +15,12 @@ class LiveFaceIdentifier(FaceIdentifier):
         for im in images:
             hits = super().identify(im)
             cache = unite_dicts(hits, cache)
+        results = []
         for name, faces in cache.items():
             if len(faces) >= 5:
                 faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames)
-                result = self.liveness_detector(input)[0] > 0.95
-                cache[name] = bool(result.detach().cpu().numpy())
-        return cache
+                result = self.liveness_detector(input).squeeze()
+                results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
+        return results
