@@ -5,25 +5,27 @@ from flask import Flask
 
 from flask import jsonify, request, send_from_directory, abort
 import cv2
-import mlflow
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.liveness_detector import LivenessDetector
 
-STATIC_DIR = 'static'
-UPLOAD_FOLDER = 'img'
-UPLOAD_DIR = os.path.join(STATIC_DIR, UPLOAD_FOLDER)
+STATIC_DIR = os.environ.get('STATIC', 'static')
+MODEL_PATH = os.environ.get('MODEL_PATH')
+KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR')
+CONFIG = os.environ.get('CONFIG')
+
+
+UPLOAD_DIR = os.path.join(STATIC_DIR, 'img')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
-conf_object = os.path.join('config.{}'.format('Debug'))
+conf_object = os.path.join('config.{}'.format(CONFIG))
 app.config.from_object(conf_object)
-app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lf,'
+app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
-liveness_detector = LivenessDetector.load_from_checkpoint('models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model/artifacts/swa.ckpt')
-face_identifier = LiveFaceIdentifier('data/16.11.20/', liveness_detector)
-
+liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH)
+face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
 
 class Error(Exception):

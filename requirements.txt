@@ -1,3 +1,7 @@
-mlflow
 flask
 flasgger
+efficientnet_pytorch
+torch
+gunicorn
+opencv-python-headless
+face_recognition

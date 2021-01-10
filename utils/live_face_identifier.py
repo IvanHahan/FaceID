@@ -12,10 +12,10 @@ class LiveFaceIdentifier(FaceIdentifier):
 
     def identify(self, images):
         cache = {}
+        results = []
         for im in images:
             hits = super().identify(im)
             cache = unite_dicts(hits, cache)
-        results = []
         for name, faces in cache.items():
             if len(faces) >= 5:
                 faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
