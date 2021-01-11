@@ -24,7 +24,7 @@ app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
-liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH)
+liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH, map_location='cpu')
 face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
 

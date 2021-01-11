@@ -3,7 +3,6 @@ import base64
 import os
 from io import BytesIO
 
-import mlflow
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -11,7 +10,6 @@ from PIL import Image
 from pytorch_lightning.metrics.functional import accuracy, f1 as f1_score, fbeta
 from torch import nn
 from torch.utils.data import DataLoader
-from liveness_detection.config import CONDA_ENV
 
 MODEL_STATE = 'model_state'
 
@@ -41,7 +39,7 @@ class LivenessDetector(pl.LightningModule):
                                                          in_channels=self.series_len)
         else:
             from efficientnet_pytorch.model import get_same_padding_conv2d, round_filters
-            self.backbone = EfficientNet.from_name('efficientnet-b0', override_params={'num_classes': 1})
+            self.backbone = EfficientNet.from_name('efficientnet-b0', num_classes=1)
             Conv2d = get_same_padding_conv2d(image_size=self.backbone._global_params.image_size)
             out_channels = round_filters(32, self.backbone._global_params)
             self.backbone._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
@@ -200,57 +198,61 @@ class LivenessDetector(pl.LightningModule):
         return images
 
 
-class LivenessDetectorWrapper(mlflow.pyfunc.PythonModel):
-
-    def __init__(self, map_location=None, input_dim=(5, 128, 128, 3), use_swa=True):
-        super(LivenessDetectorWrapper, self).__init__()
-        self.map_location = map_location
-        self.input_dim = input_dim
-        self.use_swa = use_swa
-
-    def load_context(self, context):
-        self._detector = LivenessDetector.load_from_checkpoint(context.artifacts[MODEL_STATE],
-                                                               map_location=self.map_location)
-        self._detector.eval()
-        self._detector.freeze()
-
-        if self.use_swa:
-            self._detector.model = self._detector.swa_model
-        else:
-            self._detector.model = self._detector.backbone
-
-        from liveness_detection.augmentation import Preprocessor
-        self._preprocessor = Preprocessor()
-
-    def predict(self, context, model_input):
-        def decode_img(x):
-            r = base64.decodebytes(bytes(x, encoding='utf-8'))
-            q = np.frombuffer(r, dtype='uint8').reshape(self.input_dim)
-            return q
-
-        images = [self._preprocessor(decode_img(x)).unsqueeze(0) for x in model_input['image'].values]
-
-        input = torch.cat(images, dim=0)
-        with torch.no_grad():
-            output = torch.sigmoid(self._detector(input))
-            return output.cpu().numpy().reshape((-1))
-
-    @staticmethod
-    def export_model(model_path, **kwargs):
-        mlflow.pyfunc.log_model(kwargs.get('name', 'model'),
-                                python_model=LivenessDetectorWrapper(kwargs.get('map_location', 'cpu'),
-                                                                     (kwargs.get('channels', 5),
-                                                                      kwargs.get('image_width', 128),
-                                                                      kwargs.get('image_width', 128),
-                                                                      3),
-                                                                     use_swa=kwargs.get('use_swa', True)),
-                                conda_env=CONDA_ENV,
-                                artifacts={MODEL_STATE: model_path},
-                                code_path=['./',
-                                           '../utils'])
+# class LivenessDetectorWrapper(mlflow.pyfunc.PythonModel):
+#
+#     def __init__(self, map_location=None, input_dim=(5, 128, 128, 3), use_swa=True):
+#         super(LivenessDetectorWrapper, self).__init__()
+#         self.map_location = map_location
+#         self.input_dim = input_dim
+#         self.use_swa = use_swa
+#
+#     def load_context(self, context):
+#         self._detector = LivenessDetector.load_from_checkpoint(context.artifacts[MODEL_STATE],
+#                                                                map_location=self.map_location)
+#         self._detector.eval()
+#         self._detector.freeze()
+#
+#         if self.use_swa:
+#             self._detector.model = self._detector.swa_model
+#         else:
+#             self._detector.model = self._detector.backbone
+#
+#         from liveness_detection.augmentation import Preprocessor
+#         self._preprocessor = Preprocessor()
+#
+#     def predict(self, context, model_input):
+#         def decode_img(x):
+#             r = base64.decodebytes(bytes(x, encoding='utf-8'))
+#             q = np.frombuffer(r, dtype='uint8').reshape(self.input_dim)
+#             return q
+#
+#         images = [self._preprocessor(decode_img(x)).unsqueeze(0) for x in model_input['image'].values]
+#
+#         input = torch.cat(images, dim=0)
+#         with torch.no_grad():
+#             output = torch.sigmoid(self._detector(input))
+#             return output.cpu().numpy().reshape((-1))
+#
+#     @staticmethod
+#     def export_model(model_path, **kwargs):
+#         mlflow.pyfunc.log_model(kwargs.get('name', 'model'),
+#                                 python_model=LivenessDetectorWrapper(kwargs.get('map_location', 'cpu'),
+#                                                                      (kwargs.get('channels', 5),
+#                                                                       kwargs.get('image_width', 128),
+#                                                                       kwargs.get('image_width', 128),
+#                                                                       3),
+#                                                                      use_swa=kwargs.get('use_swa', True)),
+#                                 conda_env=CONDA_ENV,
+#                                 artifacts={MODEL_STATE: model_path},
+#                                 code_path=['./',
+#                                            '../utils'])
 
 
 if __name__ == '__main__':
+
+    import mlflow
+    from liveness_detection.config import CONDA_ENV
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--gpus', type=int, default=1)

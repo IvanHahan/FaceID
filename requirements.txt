@@ -5,3 +5,4 @@ torch
 gunicorn
 opencv-python-headless
 face_recognition
+pytorch_lightning
