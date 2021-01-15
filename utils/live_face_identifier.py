@@ -2,6 +2,7 @@ from .face_identifier import FaceIdentifier
 from utils.common import unite_dicts
 from utils.image_processing import pad_image, resize_image
 import numpy as np
+import torch
 
 
 class LiveFaceIdentifier(FaceIdentifier):
@@ -21,6 +22,6 @@ class LiveFaceIdentifier(FaceIdentifier):
                 faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames)
-                result = self.liveness_detector(input).squeeze()
+                result = torch.sigmoid(self.liveness_detector(input).squeeze())
                 results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
         return results
