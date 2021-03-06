@@ -1,5 +1,4 @@
 import argparse
-import base64
 import os
 from io import BytesIO
 
@@ -7,9 +6,10 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from PIL import Image
-from pytorch_lightning.metrics.functional import accuracy, f1 as f1_score, fbeta
+from pytorch_lightning.metrics.functional import accuracy, fbeta
 from torch import nn
 from torch.utils.data import DataLoader
+from torchvision.models import densenet121
 
 MODEL_STATE = 'model_state'
 
@@ -32,31 +32,33 @@ class LivenessDetector(pl.LightningModule):
         super().__init__()
         self.series_len = kwargs.get('channels', 5)
 
-        from efficientnet_pytorch import EfficientNet
-        if kwargs.get('pretrained', False):
-            self.backbone = EfficientNet.from_pretrained(kwargs.get('network', 'efficientnet-b0'),
-                                                         num_classes=1,
-                                                         in_channels=self.series_len)
-        else:
-            from efficientnet_pytorch.model import get_same_padding_conv2d, round_filters
-            self.backbone = EfficientNet.from_name('efficientnet-b0', num_classes=1)
-            Conv2d = get_same_padding_conv2d(image_size=self.backbone._global_params.image_size)
-            out_channels = round_filters(32, self.backbone._global_params)
-            self.backbone._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
+        # if kwargs.get('pretrained', False):
+        self.model = densenet121(True)
+        self.model.features[0] = nn.Conv2d(5, 64, 7, 2, 3, bias=False)
+        self.model.classifier = nn.Linear(self.model.classifier.in_features, 1)
+        print(self.model)
+        # self.model = EfficientNet.from_pretrained(kwargs.get('network', 'efficientnet-b0'),
+        #                                              num_classes=1,
+        #                                              in_channels=self.series_len)
+        # else:
+        #     from efficientnet_pytorch.model import get_same_padding_conv2d, round_filters
+        # self.model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
+        #     Conv2d = get_same_padding_conv2d(image_size=self.backbone._global_params.image_size)
+        #     out_channels = round_filters(32, self.backbone._global_params)
+        #     self.backbone._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
+        # self.model = resnet50(True)
+        # self.model.conv1 = nn.Conv2d(5, 64, 7, 2, 3, bias=False)
+        # self.model.fc = nn.Linear(self.model.fc.in_features, 1)
 
-        self.swa_model = torch.optim.swa_utils.AveragedModel(self.backbone)
 
-        self.model = self.backbone
 
         self.train_live_file = kwargs.get('tl')
         self.test_live_file = kwargs.get('vl')
         self.train_spoofed_file = kwargs.get('ts')
         self.test_spoofed_file = kwargs.get('vs')
 
-        self.lr = kwargs.get('lr', 0.02)
+        self.lr = kwargs.get('lr', 0.01)
         self.epochs = kwargs.get('max_epochs', 100)
-        self.swa_start = int(self.epochs * 0.75)
-        self.cycle_period = 35
 
         self.bce_loss = nn.BCEWithLogitsLoss()
         self.optimizer = None
@@ -70,10 +72,7 @@ class LivenessDetector(pl.LightningModule):
 
     def training_step(self, batch, idx, swa=False):
         x, y = batch
-        if swa:
-            logits = self.swa_model(x)
-        else:
-            logits = self.backbone(x)
+        logits = self(x)
         loss = self.bce_loss(logits, y)
         scores = torch.sigmoid(logits)
 
@@ -97,16 +96,6 @@ class LivenessDetector(pl.LightningModule):
         self.log('acc', mean_acc)
 
         self.log('lr', self.optimizer.param_groups[0]['lr'])
-
-        # if (self.current_epoch + 1) % self.cycle_period == 0:
-        #     self.swa_model.update_parameters(self.backbone)
-        # self.scheduler.step
-
-        if self.current_epoch > self.swa_start:
-            self.swa_model.update_parameters(self.backbone)
-            self.swa_scheduler.step()
-        else:
-            self.scheduler.step()
 
     def validation_epoch_end(self, outputs):
         mean_loss = torch.stack([o['loss'] for o in outputs]).mean()
@@ -144,21 +133,15 @@ class LivenessDetector(pl.LightningModule):
         self.log('swa_final_f1', mean_f1)
         self.log('swa_final_acc', mean_acc)
 
-    def on_train_end(self):
-        torch.optim.swa_utils.update_bn(self.train_dataloader(), self.swa_model, self.device)
-
     def configure_optimizers(self):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
         self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, self.epochs)
-        self.swa_scheduler = torch.optim.swa_utils.SWALR(self.optimizer, 0.03, anneal_epochs=int(self.epochs * 0.25))
 
-        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, self.cycle_period)
-
-        return [self.optimizer]
+        return [self.optimizer], [self.scheduler]
 
     def setup(self, stage: str):
-        from liveness_detection.dataset import LivenessDataset
+        from liveness_detection.dataset.sequence import LivenessDataset
         from liveness_detection.augmentation import Preprocessor
         preprocessor = Preprocessor(augment=True)
         self._test_dataset = LivenessDataset(self.test_live_file,
@@ -180,7 +163,7 @@ class LivenessDetector(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--network', default='efficientnet-b0', help='efficientnet-b[0-6]')
+        parser.add_argument('--network', default='densenet121', help='efficientnet-b[0-6]')
         parser.add_argument('--image_width', type=int, default=128)
         parser.add_argument('--channels', type=int, default=5)
 
@@ -198,60 +181,9 @@ class LivenessDetector(pl.LightningModule):
         return images
 
 
-# class LivenessDetectorWrapper(mlflow.pyfunc.PythonModel):
-#
-#     def __init__(self, map_location=None, input_dim=(5, 128, 128, 3), use_swa=True):
-#         super(LivenessDetectorWrapper, self).__init__()
-#         self.map_location = map_location
-#         self.input_dim = input_dim
-#         self.use_swa = use_swa
-#
-#     def load_context(self, context):
-#         self._detector = LivenessDetector.load_from_checkpoint(context.artifacts[MODEL_STATE],
-#                                                                map_location=self.map_location)
-#         self._detector.eval()
-#         self._detector.freeze()
-#
-#         if self.use_swa:
-#             self._detector.model = self._detector.swa_model
-#         else:
-#             self._detector.model = self._detector.backbone
-#
-#         from liveness_detection.augmentation import Preprocessor
-#         self._preprocessor = Preprocessor()
-#
-#     def predict(self, context, model_input):
-#         def decode_img(x):
-#             r = base64.decodebytes(bytes(x, encoding='utf-8'))
-#             q = np.frombuffer(r, dtype='uint8').reshape(self.input_dim)
-#             return q
-#
-#         images = [self._preprocessor(decode_img(x)).unsqueeze(0) for x in model_input['image'].values]
-#
-#         input = torch.cat(images, dim=0)
-#         with torch.no_grad():
-#             output = torch.sigmoid(self._detector(input))
-#             return output.cpu().numpy().reshape((-1))
-#
-#     @staticmethod
-#     def export_model(model_path, **kwargs):
-#         mlflow.pyfunc.log_model(kwargs.get('name', 'model'),
-#                                 python_model=LivenessDetectorWrapper(kwargs.get('map_location', 'cpu'),
-#                                                                      (kwargs.get('channels', 5),
-#                                                                       kwargs.get('image_width', 128),
-#                                                                       kwargs.get('image_width', 128),
-#                                                                       3),
-#                                                                      use_swa=kwargs.get('use_swa', True)),
-#                                 conda_env=CONDA_ENV,
-#                                 artifacts={MODEL_STATE: model_path},
-#                                 code_path=['./',
-#                                            '../utils'])
-
-
 if __name__ == '__main__':
 
     import mlflow
-    from liveness_detection.config import CONDA_ENV
 
     parser = argparse.ArgumentParser()
 
@@ -277,9 +209,9 @@ if __name__ == '__main__':
         model = LivenessDetector(**vars(args))
         trainer = pl.Trainer.from_argparse_args(args)
         trainer.fit(model)
-        trainer.test(model)
+        # trainer.test(model)
 
-        swa_path = '../models/swa.ckpt'
-        trainer.save_checkpoint(swa_path)
+        # swa_path = '../models/swa.ckpt'
+        # trainer.save_checkpoint(swa_path)
         # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='swa', use_swa=True)
         # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='model', use_swa=False)

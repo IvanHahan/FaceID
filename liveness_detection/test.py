@@ -1,11 +1,6 @@
-from liveness_detection.liveness_detector import LivenessDetectorWrapper, MODEL_STATE
-import torch
-import mlflow
 import base64
-import pandas as pd
 import numpy as np
-from liveness_detection.liveness_detector import LivenessDetector, LivenessDetectorWrapper
-from liveness_detection.dataset import LivenessDataset
+from liveness_detection.dataset.sequence import LivenessDataset
 from liveness_detection.augmentation import Preprocessor
 
 # images = np.random.randint(0, 255, (5, 144, 144, 3), 'uint8')
