@@ -20,8 +20,8 @@ COPY . .
 
 EXPOSE 5000/tcp
 
-ENV CONFIG='Debug'
-ENV MODEL_PATH='/models/b0f8d69be9b04052ab1ad91d127f724a/artifacts/model/artifacts/swa.ckpt'
+ENV CONFIG='Default'
+ENV MODEL_PATH='/models/aenet.pth.tar'
 ENV KNOWN_FACES_DIR='/data/16.11.20'
 
 ENTRYPOINT [ "gunicorn", "app:app", "--timeout=120", "-b=0.0.0.0:5000" ]

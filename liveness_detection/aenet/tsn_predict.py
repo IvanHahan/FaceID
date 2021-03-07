@@ -33,7 +33,7 @@ class TSNPredictor(CelebASpoofDetector):
     def __init__(self, path='./ckpt_iter.pth.tar'):
         self.num_class = 2
         self.net = AENet(num_classes = self.num_class)
-        checkpoint = torch.load(path)
+        checkpoint = torch.load(path, map_location=torch.device('cpu'))
 
         pretrain(self.net,checkpoint['state_dict'])
 
@@ -45,7 +45,6 @@ class TSNPredictor(CelebASpoofDetector):
             ])
 
         
-        self.net.cuda()
         self.net.eval()
 
     def preprocess_data(self, image):
@@ -56,7 +55,7 @@ class TSNPredictor(CelebASpoofDetector):
     def eval_image(self, image):
         data = torch.stack(image,dim=0)
         channel = 3
-        input_var = data.view(-1, channel, data.size(2), data.size(3)).cuda()
+        input_var = data.view(-1, channel, data.size(2), data.size(3))
         with torch.no_grad():
             rst = self.net(input_var).detach()
         return rst.reshape(-1, self.num_class)

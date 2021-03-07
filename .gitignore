@@ -48,6 +48,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+*.DS_store
 
 # Installer logs
 pip-log.txt
@@ -307,3 +308,4 @@ ipython_config.py
 /models/
 /data/
 /static/
+/lightning_logs
