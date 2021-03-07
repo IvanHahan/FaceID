@@ -5,7 +5,7 @@ from glob import glob
 from os.path import join
 from utils.face_identifier import FaceIdentifier, extract_face_series
 from utils.common import unite_dicts
-from liveness_detection.util import preprocess_input as liveness_process
+from liveness_detection import preprocess_input as liveness_process
 from utils import visualization
 import mlflow
 

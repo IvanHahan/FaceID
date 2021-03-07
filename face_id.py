@@ -1,8 +1,7 @@
 import cv2
-import torch
 from utils.face_identifier import FaceIdentifier
 from utils.common import unite_dicts
-from liveness_detection.liveness_detection_client import LivenessDetectionClient
+from liveness_detection import LivenessDetectionClient
 from utils.image_processing import resize_image, pad_image
 import numpy as np
 

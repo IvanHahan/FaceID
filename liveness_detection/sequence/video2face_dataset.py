@@ -4,8 +4,8 @@ import cv2
 import face_recognition
 from utils.utils import make_dir_if_needed
 
-input_path = '../data/dima/spoofed.MOV'
-output_dir = '../data/dima/spoofed'
+input_path = '../../data/dima/spoofed.MOV'
+output_dir = '../../data/dima/spoofed'
 
 make_dir_if_needed(output_dir)
 

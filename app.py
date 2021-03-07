@@ -1,18 +1,16 @@
-import os
-
 from flasgger import Swagger
 from flask import Flask
 
-from flask import jsonify, request, send_from_directory, abort
+from flask import jsonify, request
 import cv2
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
-from liveness_detection.liveness_detector import LivenessDetector
+from liveness_detection.aenet.tsn_predict import TSNPredictor
 
 STATIC_DIR = os.environ.get('STATIC', 'static')
-MODEL_PATH = os.environ.get('MODEL_PATH')
-KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR')
-CONFIG = os.environ.get('CONFIG')
+MODEL_PATH = os.environ.get('MODEL_PATH', 'models/aenet.pth.tar')
+KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
+CONFIG = os.environ.get('CONFIG', 'Default')
 
 
 UPLOAD_DIR = os.path.join(STATIC_DIR, 'img')
@@ -24,7 +22,7 @@ app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
-liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH, map_location='cpu')
+liveness_detector = TSNPredictor(MODEL_PATH)
 face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
 

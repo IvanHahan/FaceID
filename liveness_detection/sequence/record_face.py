@@ -8,7 +8,7 @@ video = cv2.VideoCapture(0)
 # 2. Variable
 a = 0
 
-output_dir = '../data/spoofed_photos/67/'
+output_dir = '../../data/spoofed_photos/67/'
 
 make_dir_if_needed(output_dir)
 

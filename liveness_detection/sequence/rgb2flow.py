@@ -5,7 +5,7 @@ import os
 from utils.utils import make_dir_if_needed
 import numpy as np
 from tqdm import tqdm
-from liveness_detection.augmentation import MaxSizeResizer
+from liveness_detection.sequence.augmentation import MaxSizeResizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--images_dir', default='data/liza/live')

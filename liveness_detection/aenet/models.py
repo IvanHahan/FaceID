@@ -7,9 +7,11 @@ from torch.autograd import Variable
 
 import numpy as np
 
+
 from torch.nn import Parameter
 
 BN = nn.BatchNorm2d
+
 
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -89,12 +91,15 @@ class Bottleneck(nn.Module):
         return out
 
 
+
+
 # AENet_C,S,G is based on ResNet-18
 class AENet(nn.Module):
 
     def __init__(self, block=BasicBlock, layers=[2, 2, 2, 2], num_classes=1000, sync_stats=False):
-
+        
         global BN
+
 
         self.inplanes = 64
         super(AENet, self).__init__()
@@ -116,12 +121,16 @@ class AENet(nn.Module):
         # One classifier of Live/Spoof information
         self.fc_live = nn.Linear(512 * block.expansion, 2)
 
+    
         # Two embedding modules of geometric information
         self.upsample14 = nn.Upsample((14, 14), mode='bilinear')
-        self.depth_final = nn.Conv2d(512, 1, kernel_size=3, stride=1, padding=1, bias=False)
-        self.reflect_final = nn.Conv2d(512, 3, kernel_size=3, stride=1, padding=1, bias=False)
+        self.depth_final = nn.Conv2d(512, 1, kernel_size=3, stride=1, padding=1,bias=False)
+        self.reflect_final = nn.Conv2d(512, 3, kernel_size=3, stride=1, padding=1,bias=False)
         # The ground truth of depth map and reflection map has been normalized[torchvision.transforms.ToTensor()]
         self.sigmoid = nn.Sigmoid()
+
+
+
 
         # initialization
         for m in self.modules():
@@ -167,15 +176,30 @@ class AENet(nn.Module):
         depth_map = self.sigmoid(depth_map)
         depth_map = self.upsample14(depth_map)
 
+
         reflect_map = self.sigmoid(reflect_map)
         reflect_map = self.upsample14(reflect_map)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
 
+
         x_live_attribute = self.fc_live_attribute(x)
         x_attack = self.fc_attack(x)
         x_light = self.fc_light(x)
         x_live = self.fc_live(x)
 
+
+
+
         return x_live
+
+
+
+
+if __name__=="__main__":
+    model = AENet()
+    model.eval()
+    print('wewew')
+
+

@@ -1,7 +1,6 @@
-import base64
 import numpy as np
-from liveness_detection.dataset.sequence import LivenessDataset
-from liveness_detection.augmentation import Preprocessor
+from liveness_detection.sequence.dataset import LivenessDataset
+from liveness_detection.sequence.augmentation import Preprocessor
 
 # images = np.random.randint(0, 255, (5, 144, 144, 3), 'uint8')
 # images_encoded = str(base64.b64encode(images), 'utf-8')
@@ -18,7 +17,7 @@ from liveness_detection.augmentation import Preprocessor
 #                                               '../data/train_spoofed.txt',
 #                                               preprocessor, 5)
 
-dataset = LivenessDataset('../data/train_live.txt', '../data/train_spoofed.txt', Preprocessor(True), 5)
+dataset = LivenessDataset('../../data/train_live.txt', '../data/train_spoofed.txt', Preprocessor(True), 5)
 print(len(dataset))
 labels = np.array([i[1] for i in dataset]).squeeze()
 print(len(labels))

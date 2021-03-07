@@ -1,13 +1,9 @@
-import glob
 import os
 
 import cv2
-import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torchvision import transforms
 
-from liveness_detection.augmentation import MaxSizeResizer, SquarePad, ToFlow
 import glob
 
 

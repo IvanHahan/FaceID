@@ -5,9 +5,8 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torchvision import transforms
 
-from liveness_detection.augmentation import MaxSizeResizer, SquarePad, ToFlow
+from liveness_detection.sequence.augmentation import ToFlow
 
 
 class SpoofTextureDataset(torch.utils.data.Dataset):

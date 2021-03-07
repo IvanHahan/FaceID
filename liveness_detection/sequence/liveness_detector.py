@@ -141,8 +141,8 @@ class LivenessDetector(pl.LightningModule):
         return [self.optimizer], [self.scheduler]
 
     def setup(self, stage: str):
-        from liveness_detection.dataset.sequence import LivenessDataset
-        from liveness_detection.augmentation import Preprocessor
+        from liveness_detection.sequence.dataset import LivenessDataset
+        from liveness_detection.sequence.augmentation import Preprocessor
         preprocessor = Preprocessor(augment=True)
         self._test_dataset = LivenessDataset(self.test_live_file,
                                              self.test_spoofed_file,
@@ -175,7 +175,7 @@ class LivenessDetector(pl.LightningModule):
 
     @staticmethod
     def preprocess(images):
-        from liveness_detection.augmentation import Preprocessor
+        from liveness_detection.sequence.augmentation import Preprocessor
         processor = Preprocessor()
         images = processor(images).unsqueeze(0)
         return images

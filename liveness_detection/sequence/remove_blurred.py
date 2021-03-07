@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 import glob
 import os
-from liveness_detection.augmentation import MaxSizeResizer
+from liveness_detection.sequence.augmentation import MaxSizeResizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--annot_file', default='data/copy.txt')
