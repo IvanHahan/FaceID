@@ -5,6 +5,7 @@ from utils.common import unite_dicts
 from liveness_detection.liveness_detection_client import LivenessDetectionClient
 from utils.image_processing import resize_image, pad_image
 import numpy as np
+from utils.fer import FER
 
 
 # def calc_iou(l, r, no_positions=False):
@@ -30,13 +31,13 @@ import numpy as np
 #     union = (union_x2 - union_x1) * (union_y2 - union_y1)
 #
 #     return intersection / (union + 0.00001)
-
+class_names = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 video_capture = cv2.VideoCapture(0)
 
 # Load a sample picture and learn how to recognize it.
 
 face_identifier = FaceIdentifier('data/known_faces')
-liveness_detector = LivenessDetectionClient()
+liveness_detector = FER()
 
 # Initialize some variables
 face_locations = []
@@ -53,25 +54,27 @@ while True:
     # if process_this_frame:
     hits = face_identifier.identify(frame)
 
-    cache = unite_dicts(cache, hits)
 
     # Display the results
-    for name, faces in cache.items():
-        if len(faces) == 5:
-            locs, frames = zip(*faces)
-            frames = np.array([pad_image(resize_image(f, 128), (128, 128))[0] for f in frames], dtype='uint8')
-            result = liveness_detector.predict(frames)
-            color = (0, 255, 0) if result[0] > 0.95 else (0, 0, 255)
-            top, right, bottom, left = locs[-1]
+    for name, faces in hits.items():
+        # if len(faces) == 5:
+        locs, frames = zip(*faces)
+        frames = np.array([pad_image(resize_image(f, 128), (128, 128))[0] for f in frames], dtype='uint8')
+        result = liveness_detector.predict(frames)[-1]
 
-            # Draw a box around the face
-            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+        # color = (0, 255, 0) if result[0] > 0.95 else (0, 0, 255)
+        top, right, bottom, left = locs[-1]
 
-            # Draw a label with a name below the face
-            cv2.rectangle(frame, (left, bottom - 35), (right, bottom), color, cv2.FILLED)
-            font = cv2.FONT_HERSHEY_DUPLEX
-            cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-            cache[name].pop(0)
+
+
+        # Draw a box around the face
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+
+        # Draw a label with a name below the face
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 255, 0), cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        cv2.putText(frame, class_names[result], (left + 6, bottom - 24), font, 1.0, (255, 255, 255), 1)
 
     # Display the resulting image
     cv2.imshow('Video', frame)
