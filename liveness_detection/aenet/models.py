@@ -176,20 +176,16 @@ class AENet(nn.Module):
         depth_map = self.sigmoid(depth_map)
         depth_map = self.upsample14(depth_map)
 
-
         reflect_map = self.sigmoid(reflect_map)
         reflect_map = self.upsample14(reflect_map)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
 
-
         x_live_attribute = self.fc_live_attribute(x)
         x_attack = self.fc_attack(x)
         x_light = self.fc_light(x)
         x_live = self.fc_live(x)
-
-
 
 
         return x_live

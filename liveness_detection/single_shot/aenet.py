@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import numpy as np
 
 from torch.nn import Parameter
-import pytorch_lightning as pl
+
 BN = nn.BatchNorm2d
 
 
@@ -90,9 +90,9 @@ class Bottleneck(nn.Module):
 
 
 # AENet_C,S,G is based on ResNet-18
-class AENet(pl.LightningModule):
+class AENet(nn.Module):
 
-    def __init__(self, block=BasicBlock, layers=[2, 2, 2, 2], num_classes=1000, sync_stats=False):
+    def __init__(self, block=BasicBlock, layers=[2, 2, 2, 2]):
 
         global BN
 
@@ -110,18 +110,18 @@ class AENet(pl.LightningModule):
         self.avgpool = nn.AvgPool2d(7, stride=1)
 
         # Three classifiers of semantic informantion
-        self.fc_live_attribute = nn.Linear(512 * block.expansion, 40)
-        self.fc_attack = nn.Linear(512 * block.expansion, 11)
-        self.fc_light = nn.Linear(512 * block.expansion, 5)
+        # self.fc_live_attribute = nn.Linear(512 * block.expansion, 40)
+        # self.fc_attack = nn.Linear(512 * block.expansion, 11)
+        # self.fc_light = nn.Linear(512 * block.expansion, 5)
         # One classifier of Live/Spoof information
-        self.fc_live = nn.Linear(512 * block.expansion, 2)
+        self.fc_live = nn.Linear(512 * block.expansion, 1)
 
         # Two embedding modules of geometric information
         self.upsample14 = nn.Upsample((14, 14), mode='bilinear')
         self.depth_final = nn.Conv2d(512, 1, kernel_size=3, stride=1, padding=1, bias=False)
         self.reflect_final = nn.Conv2d(512, 3, kernel_size=3, stride=1, padding=1, bias=False)
         # The ground truth of depth map and reflection map has been normalized[torchvision.transforms.ToTensor()]
-        self.sigmoid = nn.Sigmoid()
+        # self.sigmoid = nn.Sigmoid()
 
         # initialization
         for m in self.modules():
@@ -161,25 +161,21 @@ class AENet(pl.LightningModule):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        depth_map = self.depth_final(x)
-        reflect_map = self.reflect_final(x)
+        # depth_map = self.depth_final(x)
+        # reflect_map = self.reflect_final(x)
 
-        depth_map = self.sigmoid(depth_map)
-        depth_map = self.upsample14(depth_map)
+        # depth_map = self.sigmoid(depth_map)
+        # depth_map = self.upsample14(depth_map)
 
-        reflect_map = self.sigmoid(reflect_map)
-        reflect_map = self.upsample14(reflect_map)
+        # reflect_map = self.sigmoid(reflect_map)
+        # reflect_map = self.upsample14(reflect_map)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
 
-        x_live_attribute = self.fc_live_attribute(x)
-        x_attack = self.fc_attack(x)
-        x_light = self.fc_light(x)
+        # x_live_attribute = self.fc_live_attribute(x)
+        # x_attack = self.fc_attack(x)
+        # x_light = self.fc_light(x)
         x_live = self.fc_live(x)
 
         return x_live
-
-    def training_step(self, batch):
-
-
