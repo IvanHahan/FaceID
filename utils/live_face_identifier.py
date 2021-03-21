@@ -18,8 +18,10 @@ class LiveFaceIdentifier(FaceIdentifier):
             hits = super().identify(im)
             cache = unite_dicts(hits, cache)
         for name, faces in cache.items():
-            faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
-            locs, frames = zip(*faces)
-            preds = self.liveness_detector.predict(frames)[:, 0]
-            results.append({'name': name, 'alive_conf': np.mean(preds).astype(float)})
+            if len(faces) >= 5:
+                faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
+                locs, frames = zip(*faces)
+                input = self.liveness_detector.preprocess(frames)
+                result = torch.sigmoid(self.liveness_detector(input).squeeze())
+                results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
         return results

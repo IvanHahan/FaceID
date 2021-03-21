@@ -1,41 +1,16 @@
 import cv2
 from utils.face_identifier import FaceIdentifier
 from utils.common import unite_dicts
-from liveness_detection import LivenessDetectionClient
+from liveness_detection.sequence.liveness_detector import LivenessDetector
 from utils.image_processing import resize_image, pad_image
 import numpy as np
-
-
-# def calc_iou(l, r, no_positions=False):
-#     # x1, y1, x2, y2
-#
-#     if no_positions:
-#         l = [0, 0, l[2] - l[0], l[3] - l[1]]
-#         r = [0, 0, r[2] - r[0], r[3] - r[1]]
-#
-#     l_x1, l_y1, l_x2, l_y2 = l
-#     r_x1, r_y1, r_x2, r_y2 = r
-#
-#     inter_x1 = max(l_x1, r_x1)
-#     inter_y1 = max(l_y1, r_y1)
-#     inter_x2 = min(l_x2, r_x2)
-#     inter_y2 = min(l_y2, r_y2)
-#     intersection = (inter_x2 - inter_x1) * (inter_y2 - inter_y1)
-#
-#     union_x1 = min(l_x1, r_x1)
-#     union_y1 = min(l_y1, r_y1)
-#     union_x2 = max(l_x2, r_x2)
-#     union_y2 = max(l_y2, r_y2)
-#     union = (union_x2 - union_x1) * (union_y2 - union_y1)
-#
-#     return intersection / (union + 0.00001)
 
 video_capture = cv2.VideoCapture(0)
 
 # Load a sample picture and learn how to recognize it.
 
 face_identifier = FaceIdentifier('data/known_faces')
-liveness_detector = LivenessDetectionClient()
+liveness_detector = LivenessDetector.load_from_checkpoint('models/48d39aa512e74102890e7f56c5e3100a/artifacts/model/data/model.pth', map_location='cpu')
 
 # Initialize some variables
 face_locations = []
@@ -59,7 +34,8 @@ while True:
         if len(faces) == 5:
             locs, frames = zip(*faces)
             frames = np.array([pad_image(resize_image(f, 128), (128, 128))[0] for f in frames], dtype='uint8')
-            result = liveness_detector.predict(frames)
+            frames = liveness_detector.preprocess(frames)
+            result = liveness_detector(frames)
             color = (0, 255, 0) if result[0] > 0.95 else (0, 0, 255)
             top, right, bottom, left = locs[-1]
 
