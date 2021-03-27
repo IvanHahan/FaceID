@@ -8,14 +8,10 @@ from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.sequence.liveness_detector import LivenessDetector
 import logging
 
-STATIC_DIR = os.environ.get('STATIC', 'static')
-MODEL_PATH = os.environ.get('MODEL_PATH', 'lightning_logs/version_0/checkpoints/epoch=27.ckpt')
+MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', 'lightning_logs/version_0/checkpoints/epoch=27.ckpt')
 KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
 CONFIG = os.environ.get('CONFIG', 'Default')
 
-
-UPLOAD_DIR = os.path.join(STATIC_DIR, 'img')
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
 conf_object = os.path.join('config.{}'.format(CONFIG))

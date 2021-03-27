@@ -21,7 +21,7 @@ COPY . .
 EXPOSE 5000/tcp
 
 ENV CONFIG='Default'
-ENV MODEL_PATH='/models/aenet.pth.tar'
-ENV KNOWN_FACES_DIR='/data/16.11.20'
+ENV LIVENESS_DETECTOR_PATH='model/liveness_detector.ckpt'
+ENV KNOWN_FACES_DIR='/known_faces'
 
 ENTRYPOINT [ "gunicorn", "app:app", "--timeout=120", "-b=0.0.0.0:5000" ]
