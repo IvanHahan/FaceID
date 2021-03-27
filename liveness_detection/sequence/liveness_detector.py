@@ -38,16 +38,23 @@ class LivenessDetector(pl.LightningModule):
         # self.model.classifier = nn.Linear(self.model.classifier.in_features, 1)
         # print(self.model)
         from efficientnet_pytorch import EfficientNet
-        self.model = EfficientNet.from_pretrained('efficientnet-b0',
-                                                     num_classes=1,
-                                                     in_channels=self.series_len)
+        if kwargs.get('pretrained', False):
+            self.model = EfficientNet.from_pretrained('efficientnet-b0',
+                                                      num_classes=1,
+                                                      in_channels=self.series_len)
+        else:
+            self.model = EfficientNet.from_name('efficientnet-b0', in_channels=self.series_len)
+            self.model._fc = nn.Linear(1280, 1, True)
+            # self.model = EfficientNet.from_pretrained('efficientnet-b0',
+            #                                           num_classes=1,
+            #                                           in_channels=self.series_len)
         # else:
         #     from efficientnet_pytorch.model import get_same_padding_conv2d, round_filters
-        # self.model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
+        # # self.model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=1)
         #     Conv2d = get_same_padding_conv2d(image_size=self.backbone._global_params.image_size)
         #     out_channels = round_filters(32, self.backbone._global_params)
         #     self.backbone._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
-        # self.model = resnet50(True)
+        # # self.model = resnet50(True)
         # self.model.conv1 = nn.Conv2d(5, 64, 7, 2, 3, bias=False)
         # self.model.fc = nn.Linear(self.model.fc.in_features, 1)
 

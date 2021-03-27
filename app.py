@@ -7,8 +7,9 @@ import os
 from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.sequence.liveness_detector import LivenessDetector
 import logging
+import torch
 
-MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', 'lightning_logs/version_0/checkpoints/epoch=27.ckpt')
+MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', 'model/liveness_detector.ckpt')
 KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
 CONFIG = os.environ.get('CONFIG', 'Default')
 
@@ -19,7 +20,8 @@ app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
-liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH)
+liveness_detector = LivenessDetector()
+liveness_detector.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
 liveness_detector.eval()
 face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
