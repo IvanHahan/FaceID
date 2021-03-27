@@ -309,3 +309,4 @@ ipython_config.py
 /data/
 /static/
 /lightning_logs
+.idea/

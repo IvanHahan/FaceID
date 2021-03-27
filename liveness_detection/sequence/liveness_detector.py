@@ -38,7 +38,7 @@ class LivenessDetector(pl.LightningModule):
         # self.model.classifier = nn.Linear(self.model.classifier.in_features, 1)
         # print(self.model)
         from efficientnet_pytorch import EfficientNet
-        self.model = EfficientNet.from_pretrained(kwargs.get('network', 'efficientnet-b0'),
+        self.model = EfficientNet.from_pretrained('efficientnet-b0',
                                                      num_classes=1,
                                                      in_channels=self.series_len)
         # else:
@@ -50,8 +50,6 @@ class LivenessDetector(pl.LightningModule):
         # self.model = resnet50(True)
         # self.model.conv1 = nn.Conv2d(5, 64, 7, 2, 3, bias=False)
         # self.model.fc = nn.Linear(self.model.fc.in_features, 1)
-
-
 
         self.train_live_file = kwargs.get('tl')
         self.test_live_file = kwargs.get('vl')
@@ -164,14 +162,14 @@ class LivenessDetector(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument('--network', default='densenet121', help='efficientnet-b[0-6]')
+        parser.add_argument('--network', default='efficientnet-b0', help='efficientnet-b[0-6]')
         parser.add_argument('--image_width', type=int, default=128)
         parser.add_argument('--channels', type=int, default=5)
 
-        parser.add_argument('--tl', help='train live file path', default='../data/train_live.txt')
-        parser.add_argument('--vl', help='val live file path', default='../data/test_live.txt')
-        parser.add_argument('--ts', help='train spoofed file path', default='../data/train_spoofed.txt')
-        parser.add_argument('--vs', help='val spoofed file path', default='../data/test_spoofed.txt')
+        parser.add_argument('--tl', help='train live file path', default='/home/ihahanov/Projects/FaceID/data/train_live.txt')
+        parser.add_argument('--vl', help='val live file path', default='/home/ihahanov/Projects/FaceID/data/test_live.txt')
+        parser.add_argument('--ts', help='train spoofed file path', default='/home/ihahanov/Projects/FaceID/data/train_spoofed.txt')
+        parser.add_argument('--vs', help='val spoofed file path', default='/home/ihahanov/Projects/FaceID/data/test_spoofed.txt')
         return parser
 
     @staticmethod
@@ -184,35 +182,29 @@ class LivenessDetector(pl.LightningModule):
 
 if __name__ == '__main__':
 
-    import mlflow
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--gpus', type=int, default=1)
     parser.add_argument('--max_epochs', type=int, default=50)
     parser.add_argument('--progress_bar_refresh_rate', type=int, default=20)
-    parser.add_argument('--default_root_dir', default=os.path.dirname(os.getcwd()), help='pytorch-lightning log path')
+    parser.add_argument('--default_root_dir', default='../../', help='pytorch-lightning log path')
 
     parser.add_argument('--map_location', default='cuda')
 
     parser = LivenessDetector.add_model_specific_args(parser)
 
     args = parser.parse_args()
-    mlflow.set_tracking_uri('file:../mlruns')
-    mlflow.set_experiment('liveness')
-    mlflow.pytorch.autolog(log_every_n_epoch=1)
-    with mlflow.start_run():
-        mlflow.log_param('image_width', args.image_width)
-        mlflow.log_param('channels', args.channels)
-        mlflow.log_param('netowork', args.network)
-        mlflow.log_param('channels', args.channels)
 
-        model = LivenessDetector(**vars(args))
-        trainer = pl.Trainer.from_argparse_args(args)
-        trainer.fit(model)
-        # trainer.test(model)
+    model = LivenessDetector(**vars(args))
+    trainer = pl.Trainer.from_argparse_args(args)
+    trainer.fit(model)
+    print(trainer.checkpoint_callback.best_model_path)
+    # model = torch.load(trainer.checkpoint_callback.best_model_path)
+    # torch.save(model.state_dict(), 'models/liveness.weights')
 
-        # swa_path = '../models/swa.ckpt'
-        # trainer.save_checkpoint(swa_path)
-        # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='swa', use_swa=True)
-        # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='model', use_swa=False)
+    # trainer.test(model)
+
+    # swa_path = '../models/swa.ckpt'
+    # trainer.save_checkpoint(swa_path)
+    # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='swa', use_swa=True)
+    # LivenessDetectorWrapper.export_model(swa_path, **vars(args), name='model', use_swa=False)

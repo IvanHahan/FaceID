@@ -67,7 +67,7 @@ class LivenessDataset(torch.utils.data.Dataset):
         with open(live_dirs_file) as f:
             for dir in f.readlines():
                 dir = dir.strip()
-                series_ = np.sort(np.array(glob.glob(os.path.join('../'+dir, '*'))))
+                series_ = np.sort(np.array(glob.glob(os.path.join('/home/ihahanov/Projects/FaceID/'+dir, '*'))))
                 if len(series_) == 0:
                     raise FileNotFoundError(dir)
                 bound = -(series_.shape[0] % series_len)
@@ -80,7 +80,7 @@ class LivenessDataset(torch.utils.data.Dataset):
         with open(spoofed_dirs_file) as f:
             for dir in f.readlines():
                 dir = dir.strip()
-                series_ = np.array(glob.glob(os.path.join('../'+dir, '*')))
+                series_ = np.array(glob.glob(os.path.join('/home/ihahanov/Projects/FaceID/'+dir, '*')))
                 if len(series_) == 0:
                     raise FileNotFoundError(dir)
                 bound = -(series_.shape[0] % series_len)

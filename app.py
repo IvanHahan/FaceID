@@ -5,10 +5,11 @@ from flask import jsonify, request
 import cv2
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
-from liveness_detection.aenet.tsn_predict import TSNPredictor
+from liveness_detection.sequence.liveness_detector import LivenessDetector
+import logging
 
 STATIC_DIR = os.environ.get('STATIC', 'static')
-MODEL_PATH = os.environ.get('MODEL_PATH', 'models/aenet.pth.tar')
+MODEL_PATH = os.environ.get('MODEL_PATH', 'lightning_logs/version_0/checkpoints/epoch=27.ckpt')
 KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
 CONFIG = os.environ.get('CONFIG', 'Default')
 
@@ -22,7 +23,8 @@ app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
-liveness_detector = TSNPredictor(MODEL_PATH)
+liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH)
+liveness_detector.eval()
 face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
 
@@ -69,6 +71,6 @@ def face_id():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    app.run(debug=True)
 
 
