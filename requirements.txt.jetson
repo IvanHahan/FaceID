@@ -1,0 +1,6 @@
+pytorch-lightning
+flask
+flasgger
+efficientnet_pytorch
+gunicorn
+face_recognition

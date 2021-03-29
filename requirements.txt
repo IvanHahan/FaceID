@@ -3,7 +3,7 @@ flasgger
 efficientnet_pytorch
 torch
 gunicorn
-opencv-python-headless
+opencv-python
 face_recognition
 pytorch_lightning
 torchvision

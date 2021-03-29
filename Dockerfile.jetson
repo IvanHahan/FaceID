@@ -1,0 +1,18 @@
+FROM nvcr.io/nvidia/l4t-ml:r32.5.0-py3
+MAINTAINER 'ivanhahanov@gmail.com'
+
+WORKDIR face_id
+
+
+COPY requirements.txt.jetson .
+RUN pip3 install -r requirements.txt.jetson
+
+COPY . .
+
+EXPOSE 5000/tcp
+
+ENV CONFIG='Default'
+ENV LIVENESS_DETECTOR_PATH='model/liveness_detector.ckpt'
+ENV KNOWN_FACES_DIR='/known_faces'
+
+CMD [ "gunicorn", "app:app", "--timeout=120", "-b=0.0.0.0:5000" ]

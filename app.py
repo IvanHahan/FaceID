@@ -9,6 +9,7 @@ from liveness_detection.sequence.liveness_detector import LivenessDetector
 import logging
 import torch
 
+UPLOAD_DIR = os.environ.get('UPLOAD_DIR', 'uploads/')
 MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', 'model/liveness_detector.ckpt')
 KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
 CONFIG = os.environ.get('CONFIG', 'Default')
