@@ -8,11 +8,15 @@ from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.sequence.liveness_detector import LivenessDetector
 import logging
 import torch
+import os
 
 UPLOAD_DIR = os.environ.get('UPLOAD_DIR', 'uploads/')
 MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', 'model/liveness_detector.ckpt')
 KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
 CONFIG = os.environ.get('CONFIG', 'Default')
+
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(KNOWN_FACES_DIR, exist_ok=True)
 
 
 app = Flask(__name__)
@@ -22,7 +26,7 @@ app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
 liveness_detector = LivenessDetector()
-liveness_detector.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
+liveness_detector.load_state_dict(torch.load(MODEL_PATH))
 liveness_detector.eval()
 face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
@@ -61,11 +65,15 @@ def handle_key_error(error):
 def face_id():
     images = []
     for f in request.files.values():
+        if f is None or len(f.filename) == 0:
+            continue
         path = os.path.join(UPLOAD_DIR, f.filename)
         f.save(path)
         image = cv2.imread(path)
+        os.remove(path)
         images.append(image)
     result = face_identifier.identify(images)
+
     return jsonify(result)
 
 

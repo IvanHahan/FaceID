@@ -23,5 +23,6 @@ EXPOSE 5000/tcp
 ENV CONFIG='Default'
 ENV LIVENESS_DETECTOR_PATH='model/liveness_detector.ckpt'
 ENV KNOWN_FACES_DIR='/known_faces'
+ENV UPLOAD_DIR='/uploads'
 
-ENTRYPOINT [ "gunicorn", "app:app", "--timeout=120", "-b=0.0.0.0:5000" ]
+CMD gunicorn app:app --timeout=120 -b=0.0.0.0:80
