@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import Dataset
 
 from liveness_detection.sequence.augmentation import ToFlow
+import random
 
 
 class SpoofTextureDataset(torch.utils.data.Dataset):
@@ -63,52 +64,43 @@ class LivenessDataset(torch.utils.data.Dataset):
         self.series = []
         self.label = []
         self.series_len = series_len
-
+        live = []
+        spoof = []
         with open(live_dirs_file) as f:
             for dir in f.readlines():
                 dir = dir.strip()
-                series_ = np.sort(np.array(glob.glob(os.path.join('/home/ihahanov/Projects/FaceID/'+dir, '*'))))
-                if len(series_) == 0:
-                    raise FileNotFoundError(dir)
-                bound = -(series_.shape[0] % series_len)
-                series_ = series_ if bound == 0 else series_[:-(series_.shape[0] % series_len)]
-                series_ = series_.reshape((-1, series_len))
-                label_ = np.ones((len(series_), 1))
-                self.series.append(series_)
-                self.label.append(label_)
-
+                live.append('/home/ihahanov/Projects/FaceID/' + dir)
         with open(spoofed_dirs_file) as f:
             for dir in f.readlines():
                 dir = dir.strip()
-                series_ = np.array(glob.glob(os.path.join('/home/ihahanov/Projects/FaceID/'+dir, '*')))
-                if len(series_) == 0:
-                    raise FileNotFoundError(dir)
-                bound = -(series_.shape[0] % series_len)
-                series_ = series_ if bound == 0 else series_[:-(series_.shape[0] % series_len)]
-                series_ = series_.reshape((-1, series_len))
-                label_ = np.zeros((len(series_), 1))
-                self.series.append(series_)
-                self.label.append(label_)
+                spoof.append('/home/ihahanov/Projects/FaceID/' + dir)
+        self.dirs = np.asarray(live + spoof)
+        self.label = np.concatenate([np.ones(len(live)), np.zeros(len(spoof))]).reshape(-1, 1)
 
-        self.series = np.row_stack(self.series)
-        self.label = np.row_stack(self.label)
-
-        permutation = np.random.permutation(len(self.series))
-        self.series = self.series[permutation]
+        permutation = np.random.permutation(len(self.dirs))
+        self.dirs = self.dirs[permutation]
         self.label = self.label[permutation]
         self.transform = transform
         self.to_flow = ToFlow()
 
     def __getitem__(self, item):
-        series = self.series[item]
-        label = self.label[item]
-        images = [cv2.imread(file) for file in series]
+        dir = self.dirs[item]
+        files = np.sort(glob.glob(os.path.join(dir, '*')))
+        if np.random.uniform(0, 1) > 0.2:
+            files = np.random.choice(files, self.series_len, replace=False)
+            images = [cv2.imread(file) for file in files]
+            label = self.label[item]
+        else:
+            file = np.random.choice(files, 1, replace=True)[0]
+            images = [cv2.imread(file) for _ in range(self.series_len)]
+            label = [0]
         # images = self.to_flow(images)
-        images = self.transform(images)
+        if self.transform is not None:
+            images = self.transform(images)
 
         return images, label
 
     def __len__(self):
-        return len(self.series)
+        return len(self.dirs)
 
 

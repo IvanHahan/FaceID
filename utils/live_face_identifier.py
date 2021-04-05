@@ -20,14 +20,17 @@ class LiveFaceIdentifier(FaceIdentifier):
             hits = super().identify(im)
             cache = unite_dicts(hits, cache)
 
+        logging.info(f'Detected {len(cache.values())} faces.')
         known_faces = {k:v for k,v in cache.items() if k != 'unknown'}
-        logging.info(f'Detected {len(cache.keys())} faces total. {len(known_faces)} are known')
+        logging.info(f'Detected {len(cache.keys())} persons. {len(known_faces)} are known.')
         for name, faces in known_faces.items():
-            if len(faces) >= 5:
+            if len(faces) >= 3:
                 logging.info(f'Checking liveness of {name}')
-                faces = np.asarray(faces)[np.random.choice(len(faces), 5)]
+                faces = np.asarray(faces)[np.random.choice(len(faces), 3)]
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames)
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
                 results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
+            else:
+                logging.info(f'Not enough faces for {name}')
         return results

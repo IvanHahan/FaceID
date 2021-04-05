@@ -9,7 +9,8 @@ from PIL import Image
 from pytorch_lightning.metrics.functional import accuracy, fbeta
 from torch import nn
 from torch.utils.data import DataLoader
-from torchvision.models import densenet121
+from torchvision.models import resnet18, resnet34, resnet50
+from torchvision.models import mobilenet_v2
 
 MODEL_STATE = 'model_state'
 
@@ -30,12 +31,12 @@ class LivenessDetector(pl.LightningModule):
         Initializes the network
         """
         super().__init__()
-        self.series_len = kwargs.get('channels', 5)
+        self.series_len = kwargs.get('channels', 3)
 
         # if kwargs.get('pretrained', False):
-        # self.model = densenet121(True)
+        # self.model = mobilenet_v2(True)
         # self.model.features[0] = nn.Conv2d(5, 64, 7, 2, 3, bias=False)
-        # self.model.classifier = nn.Linear(self.model.classifier.in_features, 1)
+        # self.model.classifier[1] = nn.Linear(self.model.classifier[1].in_features, 1)
         # print(self.model)
         from efficientnet_pytorch import EfficientNet
         if kwargs.get('pretrained', False):
@@ -43,8 +44,8 @@ class LivenessDetector(pl.LightningModule):
                                                       num_classes=1,
                                                       in_channels=self.series_len)
         else:
-            self.model = EfficientNet.from_name('efficientnet-b0', in_channels=self.series_len)
-            self.model._fc = nn.Linear(1280, 1, True)
+            self.model = EfficientNet.from_name('efficientnet-b4', in_channels=self.series_len)
+            self.model._fc = nn.Linear(self.model._fc.in_features, 1, True)
             # self.model = EfficientNet.from_pretrained('efficientnet-b0',
             #                                           num_classes=1,
             #                                           in_channels=self.series_len)
@@ -54,8 +55,8 @@ class LivenessDetector(pl.LightningModule):
         #     Conv2d = get_same_padding_conv2d(image_size=self.backbone._global_params.image_size)
         #     out_channels = round_filters(32, self.backbone._global_params)
         #     self.backbone._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
-        # # self.model = resnet50(True)
-        # self.model.conv1 = nn.Conv2d(5, 64, 7, 2, 3, bias=False)
+        # self.model = resnet50(True)
+        # self.model.conv1 = nn.Conv2d(3, 64, 7, 2, 3, bias=False)
         # self.model.fc = nn.Linear(self.model.fc.in_features, 1)
 
         self.train_live_file = kwargs.get('tl')
@@ -63,7 +64,7 @@ class LivenessDetector(pl.LightningModule):
         self.train_spoofed_file = kwargs.get('ts')
         self.test_spoofed_file = kwargs.get('vs')
 
-        self.lr = kwargs.get('lr', 0.01)
+        self.lr = kwargs.get('lr', 0.002)
         self.epochs = kwargs.get('max_epochs', 100)
 
         self.bce_loss = nn.BCEWithLogitsLoss()
@@ -83,8 +84,8 @@ class LivenessDetector(pl.LightningModule):
         scores = torch.sigmoid(logits)
 
         scores = scores.gt(0.5).float()
-        f1 = fbeta(scores, y, 1, average='macro', beta=0.7)
-        acc = accuracy(scores, y, 2, class_reduction='macro')
+        f1 = fbeta(scores, y, 1, beta=0.7)
+        acc = accuracy(scores, y, 2)
 
         return {"loss": loss, 'f1': f1, 'acc': acc}
 
@@ -142,7 +143,8 @@ class LivenessDetector(pl.LightningModule):
     def configure_optimizers(self):
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 
-        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, self.epochs)
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(self.optimizer, 30)
+        # self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, self.epochs)
 
         return [self.optimizer], [self.scheduler]
 
@@ -158,7 +160,7 @@ class LivenessDetector(pl.LightningModule):
                                               preprocessor, self.series_len)
 
     def train_dataloader(self):
-        return DataLoader(self._train_dataset, batch_size=32, shuffle=True, num_workers=8)
+        return DataLoader(self._train_dataset, batch_size=16, shuffle=True, num_workers=8)
 
     def val_dataloader(self):
         return DataLoader(self._test_dataset, batch_size=32, num_workers=8)
@@ -171,7 +173,7 @@ class LivenessDetector(pl.LightningModule):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument('--network', default='efficientnet-b0', help='efficientnet-b[0-6]')
         parser.add_argument('--image_width', type=int, default=128)
-        parser.add_argument('--channels', type=int, default=5)
+        parser.add_argument('--channels', type=int, default=3)
 
         parser.add_argument('--tl', help='train live file path', default='/home/ihahanov/Projects/FaceID/data/train_live.txt')
         parser.add_argument('--vl', help='val live file path', default='/home/ihahanov/Projects/FaceID/data/test_live.txt')
@@ -192,7 +194,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--gpus', type=int, default=1)
-    parser.add_argument('--max_epochs', type=int, default=50)
+    parser.add_argument('--max_epochs', type=int, default=90)
     parser.add_argument('--progress_bar_refresh_rate', type=int, default=20)
     parser.add_argument('--default_root_dir', default='../../', help='pytorch-lightning log path')
 
@@ -202,10 +204,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # from pytorch_lightning.callbacks import ModelCheckpoint
+
     model = LivenessDetector(**vars(args))
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.fit(model)
-    print(trainer.checkpoint_callback.best_model_path)
+    # trainer.save_checkpoint(trainer.checkpoint_callback.last_model_path, True)
+    # print(trainer.checkpoint_callback.best_model_path)
     # model = torch.load(trainer.checkpoint_callback.best_model_path)
     # torch.save(model.state_dict(), 'models/liveness.weights')
 
