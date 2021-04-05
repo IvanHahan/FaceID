@@ -6,6 +6,8 @@ import torch
 import logging
 
 
+
+
 class LiveFaceIdentifier(FaceIdentifier):
 
     def __init__(self, known_faces_dir, liveness_detector):
@@ -32,5 +34,6 @@ class LiveFaceIdentifier(FaceIdentifier):
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
                 results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
             else:
+                results.append({'name': name, 'message': 'Not enough faces found', 'details': f'Min faces {3}. Found {len(faces)}'})
                 logging.info(f'Not enough faces for {name}')
         return results

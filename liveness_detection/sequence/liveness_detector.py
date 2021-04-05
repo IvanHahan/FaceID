@@ -44,7 +44,7 @@ class LivenessDetector(pl.LightningModule):
                                                       num_classes=1,
                                                       in_channels=self.series_len)
         else:
-            self.model = EfficientNet.from_name('efficientnet-b4', in_channels=self.series_len)
+            self.model = EfficientNet.from_name('efficientnet-b0', in_channels=self.series_len)
             self.model._fc = nn.Linear(self.model._fc.in_features, 1, True)
             # self.model = EfficientNet.from_pretrained('efficientnet-b0',
             #                                           num_classes=1,
