@@ -37,3 +37,7 @@ The docker image can be run then using:
 
 Each folder is associated with the specific person and should contain photos of him/her. The number of photos
 is not restricted and can be expanded.
+
+# API
+
+API docs can be accessed on `/apidocs` endpoint of the deployed app.

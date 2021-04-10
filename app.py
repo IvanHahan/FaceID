@@ -65,6 +65,35 @@ def handle_key_error(error):
 
 @app.route('/face_id', methods=['POST'])
 def face_id():
+    """
+        Endpoint identifying faces in query photos and estimate their liveness.
+        ---
+        responses:
+            200:
+                description: Each object in the list represents the identified face (one of known faces). If no faces identified or faces are unknown, list will be empty
+                schema:
+                    type: array
+                    items:
+                        oneOf:
+                            - type: object
+                              properties:
+                                name:
+                                    type: string
+                                alive_conf:
+                                    type: number
+                            - type: object
+                              properties:
+                                name:
+                                    type: string
+                                message:
+                                    type: string
+                                detail:
+                                    type: string
+                              required:
+                                - name
+                                - message
+
+        """
     if request.method == 'POST':
         images = []
         for f in request.files.values():
