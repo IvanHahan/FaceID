@@ -4,8 +4,7 @@ from utils.image_processing import pad_image, resize_image
 import numpy as np
 import torch
 import logging
-
-
+import random
 
 
 class LiveFaceIdentifier(FaceIdentifier):
@@ -28,7 +27,7 @@ class LiveFaceIdentifier(FaceIdentifier):
         for name, faces in known_faces.items():
             if len(faces) >= 3:
                 logging.info(f'Checking liveness of {name}')
-                faces = np.asarray(faces)[np.random.choice(len(faces), 3, replace=False)]
+                faces = random.sample(faces, 3)
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames).cuda()
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
