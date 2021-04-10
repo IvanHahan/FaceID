@@ -27,7 +27,8 @@ class LiveFaceIdentifier(FaceIdentifier):
         for name, faces in known_faces.items():
             if len(faces) >= 3:
                 logging.info(f'Checking liveness of {name}')
-                faces = random.sample(faces, 3)
+                faces_i = np.sort(np.random.choice(np.arange(len(faces)), 3, False))
+                faces = np.asarray(faces)[faces_i]
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames).cuda()
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
