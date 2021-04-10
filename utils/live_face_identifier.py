@@ -30,7 +30,7 @@ class LiveFaceIdentifier(FaceIdentifier):
                 logging.info(f'Checking liveness of {name}')
                 faces = np.asarray(faces)[np.random.choice(len(faces), 3)]
                 locs, frames = zip(*faces)
-                input = self.liveness_detector.preprocess(frames)
+                input = self.liveness_detector.preprocess(frames).cuda()
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
                 results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
             else:

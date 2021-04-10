@@ -1,7 +1,7 @@
 from flasgger import Swagger
 from flask import Flask
 
-from flask import jsonify, request
+from flask import jsonify, request, abort
 import cv2
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
@@ -63,20 +63,22 @@ def handle_key_error(error):
     return response
 
 
-@app.route('/face_id', methods=['Post'])
+@app.route('/face_id', methods=['POST'])
 def face_id():
-    images = []
-    for f in request.files.values():
-        if f is None or len(f.filename) == 0:
-            continue
-        path = os.path.join(UPLOAD_DIR, f.filename)
-        f.save(path)
-        image = cv2.imread(path)
-        os.remove(path)
-        images.append(image)
-    result = face_identifier.identify(images)
+    if request.method == 'POST':
+        images = []
+        for f in request.files.values():
+            if f is None or len(f.filename) == 0:
+                continue
+            path = os.path.join(UPLOAD_DIR, f.filename)
+            f.save(path)
+            image = cv2.imread(path)
+            os.remove(path)
+            images.append(image)
+        result = face_identifier.identify(images)
+        return jsonify(result)
+    abort(404)
 
-    return jsonify(result)
 
 
 if __name__ == '__main__':
