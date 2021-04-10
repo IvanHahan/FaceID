@@ -9,8 +9,6 @@ RUN pip3 install -r requirements.txt.jetson
 
 COPY . .
 
-EXPOSE 5000/tcp
-
 ENV LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/tegra
 ENV CONFIG='Default'
 ENV LIVENESS_DETECTOR_PATH='model/liveness_detector.ckpt'
