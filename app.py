@@ -6,9 +6,9 @@ import cv2
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.sequence.liveness_detector import LivenessDetector
-import logging
 import torch
 import os
+import logging
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -108,6 +108,11 @@ def face_id():
         return jsonify(result)
     abort(404)
 
+
+if __name__ != '__main__':
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers.extend(gunicorn_logger.handlers)
+    app.logger.setLevel(gunicorn_logger.level)
 
 if __name__ == '__main__':
     app.run(debug=True)
