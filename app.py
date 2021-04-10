@@ -30,7 +30,7 @@ swagger = Swagger(app)
 liveness_detector = LivenessDetector()
 liveness_detector.load_state_dict(torch.load(MODEL_PATH))
 liveness_detector.eval()
-face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
+face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector.cuda())
 
 
 class Error(Exception):
