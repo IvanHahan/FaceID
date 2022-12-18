@@ -23,5 +23,5 @@ class LiveFaceIdentifier(FaceIdentifier):
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames)
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
-                results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
+                results.append({'ent': name, 'alive_conf': float(result.detach().cpu().numpy())})
         return results

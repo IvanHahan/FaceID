@@ -8,15 +8,15 @@ import cv2
 import os
 from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.liveness_detector import LivenessDetector
+import random
+import string
 
 STATIC_DIR = os.environ.get('STATIC', 'static')
 MODEL_PATH = os.environ.get('MODEL_PATH')
 KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR')
 CONFIG = os.environ.get('CONFIG')
 
-
-UPLOAD_DIR = os.path.join(STATIC_DIR, 'img')
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(STATIC_DIR, exist_ok=True)
 
 app = Flask(__name__)
 conf_object = os.path.join('config.{}'.format(CONFIG))
@@ -62,12 +62,68 @@ def handle_key_error(error):
 def face_id():
     images = []
     for f in request.files.values():
-        path = os.path.join(UPLOAD_DIR, f.filename)
+        path = os.path.join(STATIC_DIR, f.filename)
         f.save(path)
         image = cv2.imread(path)
         images.append(image)
     result = face_identifier.identify(images)
     return jsonify(result)
+
+
+@app.route('/class', methods=['Post', 'Delete'])
+def class_():
+    if request.method == 'POST':
+        alias = request.json.get('alias',
+                                 'class_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)))
+        class_dir = os.path.join(STATIC_DIR, alias)
+
+        os.makedirs(class_dir, exist_ok=True)
+        return {'alias': alias}
+    elif request.method == 'DELETE':
+        if alias := request.json.get('alias'):
+            class_dir = os.path.join(STATIC_DIR, alias)
+            if len(os.listdir(class_dir)) == 0:
+                os.rmdir(class_dir)
+                return {"success": True}
+            else:
+                return {"success": False, "message": "Not empty"}
+        else:
+            return {"success": False, "message": "Class not found"}
+
+
+@app.route('/enroll', methods=['Post'])
+def enroll():
+    class_ = request.json.get('ent')
+    image_file = next(request.files.values(), None)
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
+    if image_file is None:
+        return {"success": False, "message": "Image not found"}
+
+    path = os.path.join(STATIC_DIR, image_file.filename)
+    image_file.save(path)
+    image = cv2.imread(path)
+    results = face_identifier.identify([image])
+
+    if len(results) > 0:
+        reg = results[0]['ent']
+        path = os.path.join(STATIC_DIR, class_, reg,
+                            'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
+        cv2.imwrite(path, image)
+        return {'success': False, 'message': 'The person already enrolled'}
+    else:
+        reg = 'reg_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        reg_dir = os.path.join(STATIC_DIR, class_, reg)
+        os.makedirs(reg_dir, exist_ok=True)
+        image_path = os.path.join(reg_dir,  'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
+        cv2.imwrite(image_path, image)
+        return {'success': True, 'name': reg}
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
