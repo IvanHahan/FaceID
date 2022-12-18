@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
 liveness_detector = LivenessDetector.load_from_checkpoint(MODEL_PATH, map_location='cpu')
-face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
+# face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector)
 
 
 class Error(Exception):
@@ -60,12 +60,17 @@ def handle_key_error(error):
 
 @app.route('/face_id', methods=['Post'])
 def face_id():
+    class_ = request.json.get('ent')
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
     images = []
     for f in request.files.values():
         path = os.path.join(STATIC_DIR, f.filename)
         f.save(path)
         image = cv2.imread(path)
         images.append(image)
+
+    face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
     result = face_identifier.identify(images)
     return jsonify(result)
 
@@ -75,13 +80,13 @@ def class_():
     if request.method == 'POST':
         alias = request.json.get('alias',
                                  'class_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)))
-        class_dir = os.path.join(STATIC_DIR, alias)
+        class_dir = os.path.join(KNOWN_FACES_DIR, alias)
 
         os.makedirs(class_dir, exist_ok=True)
         return {'alias': alias}
     elif request.method == 'DELETE':
         if alias := request.json.get('alias'):
-            class_dir = os.path.join(STATIC_DIR, alias)
+            class_dir = os.path.join(KNOWN_FACES_DIR, alias)
             if len(os.listdir(class_dir)) == 0:
                 os.rmdir(class_dir)
                 return {"success": True}
@@ -94,26 +99,28 @@ def class_():
 @app.route('/enroll', methods=['Post'])
 def enroll():
     class_ = request.json.get('ent')
-    image_file = next(request.files.values(), None)
     if class_ is None:
         return {"success": False, "message": "Class not found"}
-    if image_file is None:
-        return {"success": False, "message": "Image not found"}
 
-    path = os.path.join(STATIC_DIR, image_file.filename)
-    image_file.save(path)
-    image = cv2.imread(path)
-    results = face_identifier.identify([image])
+    images = []
+    for f in request.files.values():
+        path = os.path.join(STATIC_DIR, f.filename)
+        f.save(path)
+        image = cv2.imread(path)
+        images.append(image)
+
+    face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
+    results = face_identifier.identify(images)
 
     if len(results) > 0:
         reg = results[0]['ent']
-        path = os.path.join(STATIC_DIR, class_, reg,
+        path = os.path.join(KNOWN_FACES_DIR, class_, reg,
                             'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
         cv2.imwrite(path, image)
         return {'success': False, 'message': 'The person already enrolled'}
     else:
         reg = 'reg_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-        reg_dir = os.path.join(STATIC_DIR, class_, reg)
+        reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
         os.makedirs(reg_dir, exist_ok=True)
         image_path = os.path.join(reg_dir,  'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
         cv2.imwrite(image_path, image)
