@@ -10,6 +10,7 @@ from utils.live_face_identifier import LiveFaceIdentifier
 from liveness_detection.liveness_detector import LivenessDetector
 import random
 import string
+import shutil
 
 STATIC_DIR = os.environ.get('STATIC', 'static')
 MODEL_PATH = os.environ.get('MODEL_PATH')
@@ -58,21 +59,33 @@ def handle_key_error(error):
     return response
 
 
-@app.route('/face_id', methods=['Post'])
+@app.route('/face_id', methods=['Post', 'Delete'])
 def face_id():
     class_ = request.json.get('ent')
     if class_ is None:
         return {"success": False, "message": "Class not found"}
-    images = []
-    for f in request.files.values():
-        path = os.path.join(STATIC_DIR, f.filename)
-        f.save(path)
-        image = cv2.imread(path)
-        images.append(image)
+    if request.method == 'POST':
+        images = []
+        for f in request.files.values():
+            path = os.path.join(STATIC_DIR, f.filename)
+            f.save(path)
+            image = cv2.imread(path)
+            images.append(image)
 
-    face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
-    result = face_identifier.identify(images)
-    return jsonify(result)
+        face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
+        result = face_identifier.identify(images)
+        return jsonify(result)
+    elif request.method == 'DELETE':
+        reg = request.json.get('id')
+        if reg is None:
+            return {"success": False, "message": "Id not found"}
+
+        reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
+        if os.path.exists(reg_dir):
+            shutil.rmtree(reg_dir)
+            return {'success': True}
+        else:
+            return {"success": False, "message": "Id not exist"}
 
 
 @app.route('/class', methods=['Post', 'Delete'])
@@ -127,11 +140,29 @@ def enroll():
         return {'success': True, 'name': reg}
 
 
+@app.route('/verify', methods=['Post'])
+def verify():
+    class_ = request.json.get('ent')
+    reg = request.json.get('id')
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
+    if reg is None:
+        return {"success": False, "message": "Id not found"}
+    images = []
+    for f in request.files.values():
+        path = os.path.join(STATIC_DIR, f.filename)
+        f.save(path)
+        image = cv2.imread(path)
+        images.append(image)
+
+    face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_, reg), liveness_detector)
+    result = face_identifier.identify(images)
+    return jsonify(result)
 
 
-
-
-
+@app.route('/status', methods=['Get'])
+def status():
+    return 'ok'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)
