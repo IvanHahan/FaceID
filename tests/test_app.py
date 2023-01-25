@@ -124,3 +124,17 @@ def test_face_id_fail(test_client, known_faces, new_face):
                                  'ent': class_})
     assert len(res.json) == 0
     assert res.status_code == 200
+
+
+def test_face_id_delete(test_client, known_faces, new_face):
+    class_ = 'toms'
+    res = test_client.post('/enroll', content_type='multipart/form-data',
+                           data={'image': (open(new_face, 'rb'), 'img1.jpg'),
+                                 'ent': class_})
+    assert res.json['success'] == True
+    class_ = 'toms'
+    name = res.json['name']
+    res = test_client.delete('/face_id', json={'ent': class_, 'id': name})
+
+    assert res.json['success'] == True
+    assert not os.path.exists(os.path.join(known_faces, class_, name))

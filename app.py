@@ -98,10 +98,10 @@ def face_id():
                                 - message
 
         """
-    class_ = request.form.get('ent')
-    if class_ is None:
-        return {"success": False, "message": "Class not found"}
     if request.method == 'POST':
+        class_ = request.form.get('ent')
+        if class_ is None:
+            return {"success": False, "message": "Class not found"}
         images = []
         for f in request.files.values():
             if f is None or len(f.filename) == 0:
@@ -115,6 +115,10 @@ def face_id():
         result = face_identifier.identify(images)
         return jsonify(result)
     elif request.method == 'DELETE':
+        class_ = request.json.get('ent')
+        if class_ is None:
+            return {"success": False, "message": "Class not found"}
+
         reg = request.json.get('id')
         if reg is None:
             return {"success": False, "message": "Id not found"}
