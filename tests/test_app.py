@@ -43,6 +43,7 @@ def test_enroll_new(test_client, new_face, known_faces):
     assert res.json['success'] == True
     shutil.rmtree(os.path.join(known_faces, class_, res.json['name']))
 
+
 def test_enroll_old(test_client, old_face, known_faces):
     with open(old_face, 'rb') as f:
         image_data = BytesIO(f.read())
@@ -54,7 +55,50 @@ def test_enroll_old(test_client, old_face, known_faces):
     assert res.status_code == 200
     os.remove(res.json['image_path'])
 
-def test_enroll(test_client):
+
+def test_verify_success(test_client, old_face):
+    class_ = 'toms'
+    id = 'holland'
+    res = test_client.post('/verify', content_type='multipart/form-data',
+                                    data={'images': (open(old_face, 'rb'), 'img1.jpg'),
+                                          'image2': (open(old_face, 'rb'), 'img2.jpg'),
+                                          'image3': (open(old_face, 'rb'), 'img3.jpg'),
+                                          'ent': class_,
+                                          'id': id})
+    assert len(res.json) > 0
+    assert res.status_code == 200
 
 
+def test_verify_fail(test_client, new_face):
+    class_ = 'toms'
+    id = 'holland'
+    res = test_client.post('/verify', content_type='multipart/form-data',
+                                    data={'images': (open(new_face, 'rb'), 'img1.jpg'),
+                                          'image2': (open(new_face, 'rb'), 'img2.jpg'),
+                                          'image3': (open(new_face, 'rb'), 'img3.jpg'),
+                                          'ent': class_,
+                                          'id': id})
+    assert len(res.json) == 0
+    assert res.status_code == 200
 
+
+def test_class_create(test_client, known_faces):
+    res = test_client.post('/class', json={'alias': 'test'})
+
+    assert res.json['success'] == True
+    assert res.json['alias'] == 'test'
+    assert os.path.exists(os.path.join(known_faces, res.json['alias']))
+    shutil.rmtree(os.path.join(known_faces, res.json['alias']))
+
+
+def test_class_delete(test_client, known_faces):
+    res = test_client.post('/class', json={'alias': 'test'})
+
+    assert res.json['success'] == True
+    assert res.json['alias'] == 'test'
+    assert os.path.exists(os.path.join(known_faces, res.json['alias']))
+
+    alias = res.json['alias']
+    res = test_client.delete('/class', json={'alias': 'test'})
+    assert not os.path.exists(os.path.join(known_faces, alias))
+    assert res.json['success'] == True

@@ -135,7 +135,7 @@ def class_():
         class_dir = os.path.join(KNOWN_FACES_DIR, alias)
 
         os.makedirs(class_dir, exist_ok=True)
-        return {'alias': alias}
+        return {'alias': alias, "success": True}
     elif request.method == 'DELETE':
         if alias := request.json.get('alias'):
             class_dir = os.path.join(KNOWN_FACES_DIR, alias)
@@ -182,8 +182,8 @@ def enroll():
 
 @app.route('/verify', methods=['Post'])
 def verify():
-    class_ = request.json.get('ent')
-    reg = request.json.get('id')
+    class_ = request.form.get('ent')
+    reg = request.form.get('id')
     if class_ is None:
         return {"success": False, "message": "Class not found"}
     if reg is None:
@@ -193,6 +193,7 @@ def verify():
         path = os.path.join(KNOWN_FACES_DIR, f.filename)
         f.save(path)
         image = cv2.imread(path)
+        os.remove(path)
         images.append(image)
 
     face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_, reg), liveness_detector)
