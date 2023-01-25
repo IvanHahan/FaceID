@@ -1,3 +1,5 @@
+import os
+
 from flasgger import Swagger
 from flask import Flask
 
@@ -9,17 +11,15 @@ from liveness_detection.sequence.liveness_detector import LivenessDetector
 import torch
 import os
 import logging
+import random
+import string
+import shutil
 
 logging.getLogger().setLevel(logging.INFO)
 
-UPLOAD_DIR = os.environ.get('UPLOAD_DIR', 'uploads/')
-MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', '/home/ihahanov/Projects/FaceID/model/liveness_detector.ckpt')
-KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', '/home/ihahanov/Projects/FaceID/data/16.11.20/')
-CONFIG = os.environ.get('CONFIG', 'Default')
 
+UPLOAD_DIR = os.path.join(STATIC_DIR, 'img')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(KNOWN_FACES_DIR, exist_ok=True)
-
 
 app = Flask(__name__)
 conf_object = os.path.join('config.{}'.format(CONFIG))
@@ -63,7 +63,7 @@ def handle_key_error(error):
     return response
 
 
-@app.route('/face_id', methods=['POST'])
+@app.route('/face_id', methods=['POST', 'DELETE'])
 def face_id():
     """
         Endpoint identifying faces in query photos and estimate their liveness.
@@ -107,12 +107,115 @@ def face_id():
         result = face_identifier.identify(images)
         return jsonify(result)
     abort(404)
+    class_ = request.json.get('ent')
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
+    if request.method == 'POST':
+        images = []
+        for f in request.files.values():
+            path = os.path.join(STATIC_DIR, f.filename)
+            f.save(path)
+            image = cv2.imread(path)
+            images.append(image)
+
+        face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
+        result = face_identifier.identify(images)
+        return jsonify(result)
+    elif request.method == 'DELETE':
+        reg = request.json.get('id')
+        if reg is None:
+            return {"success": False, "message": "Id not found"}
+
+        reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
+        if os.path.exists(reg_dir):
+            shutil.rmtree(reg_dir)
+            return {'success': True}
+        else:
+            return {"success": False, "message": "Id not exist"}
+
+
+@app.route('/class', methods=['Post', 'Delete'])
+def class_():
+    if request.method == 'POST':
+        alias = request.json.get('alias',
+                                 'class_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)))
+        class_dir = os.path.join(KNOWN_FACES_DIR, alias)
+
+        os.makedirs(class_dir, exist_ok=True)
+        return {'alias': alias}
+    elif request.method == 'DELETE':
+        if alias := request.json.get('alias'):
+            class_dir = os.path.join(KNOWN_FACES_DIR, alias)
+            if len(os.listdir(class_dir)) == 0:
+                os.rmdir(class_dir)
+                return {"success": True}
+            else:
+                return {"success": False, "message": "Not empty"}
+        else:
+            return {"success": False, "message": "Class not found"}
+
+
+@app.route('/enroll', methods=['Post'])
+def enroll():
+    class_ = request.json.get('ent')
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
+
+    images = []
+    for f in request.files.values():
+        path = os.path.join(STATIC_DIR, f.filename)
+        f.save(path)
+        image = cv2.imread(path)
+        images.append(image)
+
+    face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
+    results = face_identifier.identify(images)
+
+    if len(results) > 0:
+        reg = results[0]['ent']
+        path = os.path.join(KNOWN_FACES_DIR, class_, reg,
+                            'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
+        cv2.imwrite(path, image)
+        return {'success': False, 'message': 'The person already enrolled'}
+    else:
+        reg = 'reg_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+        reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
+        os.makedirs(reg_dir, exist_ok=True)
+        image_path = os.path.join(reg_dir,  'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
+        cv2.imwrite(image_path, image)
+        return {'success': True, 'name': reg}
+
+
+@app.route('/verify', methods=['Post'])
+def verify():
+    class_ = request.json.get('ent')
+    reg = request.json.get('id')
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
+    if reg is None:
+        return {"success": False, "message": "Id not found"}
+    images = []
+    for f in request.files.values():
+        path = os.path.join(STATIC_DIR, f.filename)
+        f.save(path)
+        image = cv2.imread(path)
+        images.append(image)
+
+    face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_, reg), liveness_detector)
+    result = face_identifier.identify(images)
+    return jsonify(result)
+
+
+@app.route('/status', methods=['Get'])
+def status():
+    return 'ok'
 
 
 if __name__ != '__main__':
     gunicorn_logger = logging.getLogger('gunicorn.error')
     app.logger.handlers.extend(gunicorn_logger.handlers)
     app.logger.setLevel(gunicorn_logger.level)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

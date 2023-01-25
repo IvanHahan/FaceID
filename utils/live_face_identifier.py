@@ -32,8 +32,8 @@ class LiveFaceIdentifier(FaceIdentifier):
                 locs, frames = zip(*faces)
                 input = self.liveness_detector.preprocess(frames).cuda()
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
-                results.append({'name': name, 'alive_conf': float(result.detach().cpu().numpy())})
+                results.append({'ent': name, 'alive_conf': float(result.detach().cpu().numpy())})
             else:
-                results.append({'name': name, 'message': 'Not enough faces found', 'details': f'Min faces {3}. Found {len(faces)}'})
+                results.append({'ent': name, 'message': 'Not enough faces found', 'details': f'Min faces {3}. Found {len(faces)}'})
                 logging.info(f'Not enough faces for {name}')
         return results
