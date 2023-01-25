@@ -6,7 +6,7 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 from PIL import Image
-from pytorch_lightning.metrics.functional import accuracy, fbeta
+from torchmetrics.functional import accuracy, fbeta_score as fbeta
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.models import resnet18, resnet34, resnet50
@@ -39,12 +39,16 @@ class LivenessDetector(pl.LightningModule):
         # self.model.classifier[1] = nn.Linear(self.model.classifier[1].in_features, 1)
         # print(self.model)
         from efficientnet_pytorch import EfficientNet
+        from efficientnet_pytorch.utils import get_same_padding_conv2d, round_filters
         if kwargs.get('pretrained', False):
             self.model = EfficientNet.from_pretrained('efficientnet-b0',
                                                       num_classes=1,
                                                       in_channels=self.series_len)
         else:
-            self.model = EfficientNet.from_name('efficientnet-b0', in_channels=self.series_len)
+            self.model = EfficientNet.from_name('efficientnet-b0')
+            Conv2d = get_same_padding_conv2d(image_size=self.model._global_params.image_size)
+            out_channels = round_filters(32, self.model._global_params)
+            self.model._conv_stem = Conv2d(self.series_len, out_channels, kernel_size=3, stride=2, bias=False)
             self.model._fc = nn.Linear(self.model._fc.in_features, 1, True)
             # self.model = EfficientNet.from_pretrained('efficientnet-b0',
             #                                           num_classes=1,

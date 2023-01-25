@@ -17,9 +17,14 @@ import shutil
 
 logging.getLogger().setLevel(logging.INFO)
 
+UPLOAD_DIR = os.environ.get('UPLOAD_DIR', 'uploads/')
+MODEL_PATH = os.environ.get('LIVENESS_DETECTOR_PATH', 'model/liveness_detector.ckpt')
+KNOWN_FACES_DIR = os.environ.get('KNOWN_FACES_DIR', 'known_faces/')
+CONFIG = os.environ.get('CONFIG', 'Default')
 
-UPLOAD_DIR = os.path.join(STATIC_DIR, 'img')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(KNOWN_FACES_DIR, exist_ok=True)
+
 
 app = Flask(__name__)
 conf_object = os.path.join('config.{}'.format(CONFIG))
@@ -30,7 +35,6 @@ swagger = Swagger(app)
 liveness_detector = LivenessDetector()
 liveness_detector.load_state_dict(torch.load(MODEL_PATH))
 liveness_detector.eval()
-face_identifier = LiveFaceIdentifier(KNOWN_FACES_DIR, liveness_detector.cuda())
 
 
 class Error(Exception):
@@ -94,6 +98,9 @@ def face_id():
                                 - message
 
         """
+    class_ = request.json.get('ent')
+    if class_ is None:
+        return {"success": False, "message": "Class not found"}
     if request.method == 'POST':
         images = []
         for f in request.files.values():
@@ -104,20 +111,6 @@ def face_id():
             image = cv2.imread(path)
             os.remove(path)
             images.append(image)
-        result = face_identifier.identify(images)
-        return jsonify(result)
-    abort(404)
-    class_ = request.json.get('ent')
-    if class_ is None:
-        return {"success": False, "message": "Class not found"}
-    if request.method == 'POST':
-        images = []
-        for f in request.files.values():
-            path = os.path.join(STATIC_DIR, f.filename)
-            f.save(path)
-            image = cv2.imread(path)
-            images.append(image)
-
         face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
         result = face_identifier.identify(images)
         return jsonify(result)
@@ -157,15 +150,16 @@ def class_():
 
 @app.route('/enroll', methods=['Post'])
 def enroll():
-    class_ = request.json.get('ent')
+    class_ = request.form.get('ent')
     if class_ is None:
         return {"success": False, "message": "Class not found"}
 
     images = []
     for f in request.files.values():
-        path = os.path.join(STATIC_DIR, f.filename)
+        path = os.path.join(UPLOAD_DIR, f.filename)
         f.save(path)
         image = cv2.imread(path)
+        os.remove(path)
         images.append(image)
 
     face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
@@ -176,7 +170,7 @@ def enroll():
         path = os.path.join(KNOWN_FACES_DIR, class_, reg,
                             'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
         cv2.imwrite(path, image)
-        return {'success': False, 'message': 'The person already enrolled'}
+        return {'success': False, 'message': 'The person already enrolled', 'name': reg, 'image_path': path}
     else:
         reg = 'reg_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
@@ -196,7 +190,7 @@ def verify():
         return {"success": False, "message": "Id not found"}
     images = []
     for f in request.files.values():
-        path = os.path.join(STATIC_DIR, f.filename)
+        path = os.path.join(KNOWN_FACES_DIR, f.filename)
         f.save(path)
         image = cv2.imread(path)
         images.append(image)

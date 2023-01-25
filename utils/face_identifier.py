@@ -33,7 +33,7 @@ class FaceIdentifier:
     def __init__(self, known_faces_dir):
         self._known_face_names = []
         self._known_face_encodings = []
-        for path in glob(join(known_faces_dir, '**.png'), recursive=True):
+        for path in glob(join(known_faces_dir, '**', '*.png'), recursive=True):
             image = face_recognition.load_image_file(path)
             encodings = face_recognition.face_encodings(image)
             if len(encodings) == 0:
