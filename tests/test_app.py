@@ -102,3 +102,25 @@ def test_class_delete(test_client, known_faces):
     res = test_client.delete('/class', json={'alias': 'test'})
     assert not os.path.exists(os.path.join(known_faces, alias))
     assert res.json['success'] == True
+
+
+def test_face_id_success(test_client, known_faces, old_face):
+    class_ = 'toms'
+    res = test_client.post('/face_id', content_type='multipart/form-data',
+                           data={'images': (open(old_face, 'rb'), 'img1.jpg'),
+                                 'image2': (open(old_face, 'rb'), 'img2.jpg'),
+                                 'image3': (open(old_face, 'rb'), 'img3.jpg'),
+                                 'ent': class_})
+    assert len(res.json) > 0
+    assert res.status_code == 200
+
+
+def test_face_id_fail(test_client, known_faces, new_face):
+    class_ = 'toms'
+    res = test_client.post('/face_id', content_type='multipart/form-data',
+                           data={'images': (open(new_face, 'rb'), 'img1.jpg'),
+                                 'image2': (open(new_face, 'rb'), 'img2.jpg'),
+                                 'image3': (open(new_face, 'rb'), 'img3.jpg'),
+                                 'ent': class_})
+    assert len(res.json) == 0
+    assert res.status_code == 200

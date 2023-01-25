@@ -98,7 +98,7 @@ def face_id():
                                 - message
 
         """
-    class_ = request.json.get('ent')
+    class_ = request.form.get('ent')
     if class_ is None:
         return {"success": False, "message": "Class not found"}
     if request.method == 'POST':
