@@ -141,7 +141,8 @@ def class_():
         os.makedirs(class_dir, exist_ok=True)
         return {'alias': alias, "success": True}
     elif request.method == 'DELETE':
-        if alias := request.json.get('alias'):
+        alias = request.json.get('alias')
+        if alias is not None:
             class_dir = os.path.join(KNOWN_FACES_DIR, alias)
             if len(os.listdir(class_dir)) == 0:
                 os.rmdir(class_dir)

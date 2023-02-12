@@ -1,6 +1,7 @@
-pytorch-lightning
+pytorch-lightning==1.5
+pillow==8.4
+face_recognition
 flask
 flasgger
 efficientnet_pytorch
 gunicorn
-face_recognition
