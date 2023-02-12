@@ -104,6 +104,21 @@ def test_class_delete(test_client, known_faces):
     assert res.json['success'] == True
 
 
+def test_class_delete_invalid_name(test_client, known_faces):
+    res = test_client.delete('/class', json={'alias': 'test%'})
+    assert res.json['success'] == False
+
+
+def test_class_create_invalid_name(test_client, known_faces):
+    res = test_client.post('/class', json={'alias': 'test%'})
+    assert res.json['success'] == False
+
+
+def test_class_delete_not_existing(test_client, known_faces):
+    res = test_client.delete('/class', json={'alias': 'test1'})
+    assert res.json['success'] == False
+
+
 def test_face_id_success(test_client, known_faces, old_face):
     class_ = 'toms'
     res = test_client.post('/face_id', content_type='multipart/form-data',

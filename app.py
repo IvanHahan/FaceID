@@ -136,14 +136,21 @@ def class_():
     if request.method == 'POST':
         alias = request.json.get('alias',
                                  'class_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)))
+        if not alias.isalnum():
+            return {"success": False, "message": "Invalid class name"}
+
         class_dir = os.path.join(KNOWN_FACES_DIR, alias)
 
         os.makedirs(class_dir, exist_ok=True)
         return {'alias': alias, "success": True}
     elif request.method == 'DELETE':
         alias = request.json.get('alias')
+        if not alias.isalnum():
+            return {"success": False, "message": "Invalid class name"}
         if alias is not None:
             class_dir = os.path.join(KNOWN_FACES_DIR, alias)
+            if not os.path.exists(class_dir):
+                return {"success": False, "message": "class does not exist"}
             if len(os.listdir(class_dir)) == 0:
                 os.rmdir(class_dir)
                 return {"success": True}
