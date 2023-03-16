@@ -169,6 +169,9 @@ def enroll():
     class_ = request.form.get('ent')
     if class_ is None:
         return {"success": False, "message": "Class not found"}
+    class_dir = os.path.join(KNOWN_FACES_DIR, class_)
+    if not os.path.exists(class_dir):
+        return {"success": False, "message": "class does not exist"}
 
     images = []
     for f in request.files.values():
@@ -193,7 +196,7 @@ def enroll():
         return {'success': False, 'message': 'The person already enrolled', 'name': reg}
     else:
         reg = 'reg_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-        for im in image:
+        for im in images:
             reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
             os.makedirs(reg_dir, exist_ok=True)
             image_path = os.path.join(reg_dir,  'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')

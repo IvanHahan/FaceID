@@ -42,6 +42,8 @@ class FaceIdentifier:
             self._known_face_names.append(os.path.basename(os.path.dirname(path)))
 
     def identify(self, image):
+        if len(self._known_face_encodings) == 0:
+            return dict()
         face_encodings, face_locations = extract_faces(image)
 
         hits = {}
