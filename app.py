@@ -186,16 +186,18 @@ def enroll():
 
     if len(results) > 0:
         reg = results[0]['ent']
-        path = os.path.join(KNOWN_FACES_DIR, class_, reg,
-                            'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
-        cv2.imwrite(path, image)
-        return {'success': False, 'message': 'The person already enrolled', 'name': reg, 'image_path': path}
+        # for im in images:
+        #     path = os.path.join(KNOWN_FACES_DIR, class_, reg,
+        #                         'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
+        #     cv2.imwrite(path, im)
+        return {'success': False, 'message': 'The person already enrolled', 'name': reg}
     else:
         reg = 'reg_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-        reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
-        os.makedirs(reg_dir, exist_ok=True)
-        image_path = os.path.join(reg_dir,  'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
-        cv2.imwrite(image_path, image)
+        for im in image:
+            reg_dir = os.path.join(KNOWN_FACES_DIR, class_, reg)
+            os.makedirs(reg_dir, exist_ok=True)
+            image_path = os.path.join(reg_dir,  'image_' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + '.png')
+            cv2.imwrite(image_path, im)
         return {'success': True, 'name': reg}
 
 

@@ -53,14 +53,14 @@ def test_enroll_old(test_client, old_face, known_faces):
                                           'ent': class_})
     assert res.json['success'] == False
     assert res.status_code == 200
-    os.remove(res.json['image_path'])
+    # os.remove(res.json['image_path'])
 
 
 def test_verify_success(test_client, old_face):
     class_ = 'toms'
     id = 'holland'
     res = test_client.post('/verify', content_type='multipart/form-data',
-                                    data={'images': (open(old_face, 'rb'), 'img1.jpg'),
+                                    data={'image1': (open(old_face, 'rb'), 'img1.jpg'),
                                           'image2': (open(old_face, 'rb'), 'img2.jpg'),
                                           'image3': (open(old_face, 'rb'), 'img3.jpg'),
                                           'ent': class_,
