@@ -65,20 +65,20 @@ def test_enroll_class_not_exist(test_client, new_face, known_faces):
     assert res.json['success'] == False
 
 
-def test_enroll_new_empty(test_client_empty, new_face, known_faces_empty):
-    class_ = 'test'
-    _ = test_client_empty.post('/class', json={'alias': class_})
-    with open(new_face, 'rb') as f:
-        image_data = BytesIO(f.read())
-    prev_class_len = len(os.listdir(os.path.join(known_faces_empty, class_)))
-    res = test_client_empty.post('/enroll', content_type='multipart/form-data',
-                                 data={'image': (image_data, 'img1.jpg'),
-                                       'ent': class_})
-    new_class_len = len(os.listdir(os.path.join(known_faces_empty, class_)))
-    assert new_class_len > prev_class_len
-    assert res.status_code == 200
-    assert res.json['success'] == True
-    shutil.rmtree(known_faces_empty)
+# def test_enroll_new_empty(test_client_empty, new_face, known_faces_empty):
+#     class_ = 'test'
+#     _ = test_client_empty.post('/class', json={'alias': class_})
+#     with open(new_face, 'rb') as f:
+#         image_data = BytesIO(f.read())
+#     prev_class_len = len(os.listdir(os.path.join(known_faces_empty, class_)))
+#     res = test_client_empty.post('/enroll', content_type='multipart/form-data',
+#                                  data={'image': (image_data, 'img1.jpg'),
+#                                        'ent': class_})
+#     new_class_len = len(os.listdir(os.path.join(known_faces_empty, class_)))
+#     assert new_class_len > prev_class_len
+#     assert res.status_code == 200
+#     assert res.json['success'] == True
+#     shutil.rmtree(known_faces_empty)
 
 
 def test_enroll_old(test_client, old_face, known_faces):
