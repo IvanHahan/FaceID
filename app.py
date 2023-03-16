@@ -111,6 +111,10 @@ def face_id():
             image = cv2.imread(path)
             os.remove(path)
             images.append(image)
+
+        if not images:
+            return {"success": False, "message": "Images not found."}
+
         face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
         result = face_identifier.identify(images)
         return jsonify(result)
@@ -173,6 +177,9 @@ def enroll():
         image = cv2.imread(path)
         os.remove(path)
         images.append(image)
+
+    if not images:
+        return {"success": False, "message": "Images not found."}
 
     face_identifier = LiveFaceIdentifier(os.path.join(KNOWN_FACES_DIR, class_), liveness_detector)
     results = face_identifier.identify(images)
