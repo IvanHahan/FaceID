@@ -30,7 +30,7 @@ class LiveFaceIdentifier(FaceIdentifier):
                 faces_i = np.sort(np.random.choice(np.arange(len(faces)), 3, False))
                 faces = np.asarray(faces, dtype=object)[faces_i]
                 locs, frames = zip(*faces)
-                input = self.liveness_detector.preprocess(frames).cuda()
+                input = self.liveness_detector.preprocess(frames).to(self.liveness_detector.device)
                 result = torch.sigmoid(self.liveness_detector(input).squeeze())
                 results.append({'ent': name, 'alive_conf': float(result.detach().cpu().numpy())})
             else:
