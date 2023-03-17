@@ -32,7 +32,7 @@ app.config.from_object(conf_object)
 app.config['SECRET_KEY'] = b'lfgp;lhfp;l,mgh;lfl,'
 
 swagger = Swagger(app)
-liveness_detector = LivenessDetector()
+liveness_detector = LivenessDetector().cuda()
 liveness_detector.load_state_dict(torch.load(MODEL_PATH))
 liveness_detector.eval()
 
